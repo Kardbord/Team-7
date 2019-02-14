@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="exchange-gateway" />
+        <module name="matching-engine" />
+        <module name="messages" />
+        <module name="player" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="base-pom" target="1.11" />
+      <module name="exchange-gateway" target="1.11" />
+      <module name="matching-engine" target="1.11" />
+      <module name="messages" target="1.11" />
+      <module name="player" target="1.11" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
