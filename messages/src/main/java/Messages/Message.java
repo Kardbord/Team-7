@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 
 public abstract class Message {
 
@@ -37,6 +38,8 @@ public abstract class Message {
 //    private static Logger log = LogManager.getFormatterLogger(Messages.Message.class.getName());
 
     protected MessageType messageType;
+
+    protected ByteArrayOutputStream outputStream;
 
     public Message(MessageType msgType) {
         messageType = msgType;
@@ -121,6 +124,70 @@ public abstract class Message {
             }
         }
         return msg;
+    }
+
+
+    protected void encodeShort(short value) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.putShort(value);
+        outputStream.write(buffer.array());
+    }
+
+    protected void encodeInt(int value) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.putInt(value);
+        outputStream.write(buffer.array());
+    }
+    protected void encodeByte(byte value) throws IOException {
+        outputStream.write(value);
+    }
+
+    protected void encodeLong(long value) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.putLong(value);
+        outputStream.write(buffer.array());
+    }
+
+    protected void encodeString(String value) throws IOException {
+        if (value==null)
+            value="";
+
+        byte[] textBytes = value.getBytes(Charset.forName("UTF-16BE"));
+        encodeShort((short) (textBytes.length));
+        outputStream.write(textBytes);
+    }
+
+    protected static short decodeShort(ByteBuffer bytes) {
+        return bytes.getShort();
+    }
+
+    protected static int decodeInt(ByteBuffer bytes) {
+        return bytes.getInt();
+    }
+
+    protected static long decodeLong(ByteBuffer bytes) {
+        return bytes.getLong();
+    }
+
+    protected static byte decodeByte(ByteBuffer bytes) {
+        return bytes.get();
+    }
+
+
+    protected static String decodeString(ByteBuffer bytes) {
+        short textLength = decodeShort(bytes);
+        if (bytes.remaining() < textLength) {
+            //log.warn("Byte array is too short for specific text");
+            return null;
+        }
+
+        //log.debug("text length=%d", textLength);
+        byte[] textBytes = new byte[textLength];
+        bytes.get(textBytes, 0, textLength);
+        return new String(textBytes, Charset.forName("UTF-16BE"));
     }
 
 }
