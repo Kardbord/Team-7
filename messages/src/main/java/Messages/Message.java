@@ -10,29 +10,30 @@ import java.nio.charset.Charset;
 public abstract class Message {
 
     public enum MessageType {
-        UNKNOWN                  ((short)  0),
-        REGISTER_PLAYER          ((short)  1),
-        PLAYER_REGISTERED        ((short)  2),
-        SUBMIT_ORDER             ((short)  3),
-        FORWARD_ORDER            ((short)  4),
-        ORDER_CONFIRMATION       ((short)  5),
-        FWD_ORDER_CONF           ((short)  6),
-        CANCEL_ORDER             ((short)  7),
-        FWD_CANCEL               ((short)  8),
-        CANCEL_CONF              ((short)  9),
-        FWD_CANCEL_CONF          ((short) 10),
-        REGISTER_MATCHING_ENGINE ((short) 11),
-        ACK                      ((short) 12),
-        TOP_OF_BOOK_NOTIFICATION ((short) 13),
-        TOP_OF_BOOK_REQUEST      ((short) 14),
-        TOP_OF_BOOK_RESPONSE     ((short) 15),
+        UNKNOWN,
+        REGISTER_PLAYER,
+        PLAYER_REGISTERED,
+        SUBMIT_ORDER,
+        FORWARD_ORDER,
+        ORDER_CONFIRMATION,
+        FWD_ORDER_CONF,
+        CANCEL_ORDER,
+        FWD_CANCEL,
+        CANCEL_CONF,
+        FWD_CANCEL_CONF,
+        REGISTER_MATCHING_ENGINE,
+        ACK,
+        TOP_OF_BOOK_NOTIFICATION,
+        TOP_OF_BOOK_REQUEST,
+        TOP_OF_BOOK_RESPONSE,
         ;
 
-        public final short VALUE;
+        public short toShort() { return (short) this.ordinal(); }
 
-        MessageType(short val) {
-            this.VALUE = val;
+        public MessageType getTypeFromShort(short ordinal) {
+            return MessageType.values()[ordinal];
         }
+
     }
 
 //    private static Logger log = LogManager.getFormatterLogger(Messages.Message.class.getName());
@@ -62,52 +63,52 @@ public abstract class Message {
         if (bytes.length >= 2) {
             short msgType = buff.getShort();
 //            log.debug("Messages.Message ID: " + msgType);
-            if (msgType == MessageType.UNKNOWN.VALUE) {
+            if (msgType == MessageType.UNKNOWN.toShort()) {
                 return null;
             }
-            else if (msgType == MessageType.REGISTER_PLAYER.VALUE) {
+            else if (msgType == MessageType.REGISTER_PLAYER.toShort()) {
                 msg = new RegisterPlayerMessage();
             }
-            else if (msgType == MessageType.PLAYER_REGISTERED.VALUE) {
+            else if (msgType == MessageType.PLAYER_REGISTERED.toShort()) {
 //                msg = new PlayerRegisteredMessage();
             }
-            else if (msgType == MessageType.SUBMIT_ORDER.VALUE) {
+            else if (msgType == MessageType.SUBMIT_ORDER.toShort()) {
 //                msg = new SubmitOrderMessage();
             }
-            else if (msgType == MessageType.FORWARD_ORDER.VALUE) {
+            else if (msgType == MessageType.FORWARD_ORDER.toShort()) {
 //                msg = new ForwardOrderMessage();
             }
-            else if (msgType == MessageType.ORDER_CONFIRMATION.VALUE) {
+            else if (msgType == MessageType.ORDER_CONFIRMATION.toShort()) {
 //                msg = new OrderConfirmation();
             }
-            else if (msgType == MessageType.FWD_ORDER_CONF.VALUE) {
+            else if (msgType == MessageType.FWD_ORDER_CONF.toShort()) {
 //                msg = new FwdOrderConfirmation();
             }
-            else if (msgType == MessageType.CANCEL_ORDER.VALUE) {
+            else if (msgType == MessageType.CANCEL_ORDER.toShort()) {
 //                msg = new CancelOrderMessage();
             }
-            else if (msgType == MessageType.FWD_CANCEL.VALUE) {
+            else if (msgType == MessageType.FWD_CANCEL.toShort()) {
 //                msg = new FwdCancelMessage();
             }
-            else if (msgType == MessageType.CANCEL_CONF.VALUE) {
+            else if (msgType == MessageType.CANCEL_CONF.toShort()) {
 //                msg = new CancelConfirmationMessage();
             }
-            else if (msgType == MessageType.FWD_CANCEL_CONF.VALUE) {
+            else if (msgType == MessageType.FWD_CANCEL_CONF.toShort()) {
 //                msg = new FwdCancelConfirmationMessage();
             }
-            else if (msgType == MessageType.REGISTER_MATCHING_ENGINE.VALUE) {
+            else if (msgType == MessageType.REGISTER_MATCHING_ENGINE.toShort()) {
 //                msg = new RegisterMEMessage();
             }
-            else if (msgType == MessageType.ACK.VALUE) {
+            else if (msgType == MessageType.ACK.toShort()) {
 //                msg = new AckMessage();
             }
-            else if (msgType == MessageType.TOP_OF_BOOK_NOTIFICATION.VALUE) {
+            else if (msgType == MessageType.TOP_OF_BOOK_NOTIFICATION.toShort()) {
 //                msg = new TopOfBookNotificationMessage();
             }
-            else if (msgType == MessageType.TOP_OF_BOOK_REQUEST.VALUE) {
+            else if (msgType == MessageType.TOP_OF_BOOK_REQUEST.toShort()) {
 //                msg = new TopOfBookRequestMessage();
             }
-            else if (msgType == MessageType.TOP_OF_BOOK_RESPONSE.VALUE) {
+            else if (msgType == MessageType.TOP_OF_BOOK_RESPONSE.toShort()) {
 //                msg = new TopOfBookResponseMessage();
             }
             else {
