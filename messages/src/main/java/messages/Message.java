@@ -30,8 +30,8 @@ public abstract class Message {
                 return PlayerRegisteredMessage.decode(messageBytes);
 //            case SUBMIT_ORDER:
 //                return SubmitOrderMessage.decode(messageBytes);
-//            case FORWARD_ORDER:
-//                return ForwardOrderMessage.decode(messageBytes);
+            case FORWARD_ORDER:
+                return ForwardOrderMessage.decode(messageBytes);
 //            case ORDER_CONFIRMATION:
 //                return OrderConfirmationMessage.decode(messageBytes);
 //            case FWD_ORDER_CONF:
