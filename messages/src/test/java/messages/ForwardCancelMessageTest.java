@@ -7,11 +7,11 @@ import java.io.IOException;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-public class CancelOrderMessageTest {
+public class ForwardCancelMessageTest {
 
     @Test
     public void encodesIntoExpected() throws IOException {
-        Message.MessageType expectedMessageType = Message.MessageType.CANCEL_ORDER;
+        Message.MessageType expectedMessageType = Message.MessageType.FWD_CANCEL;
         short expectedPlayerId = 12;
         short expectedOrderId = 42;
         String expectedSymbol = "NVDA";
@@ -24,7 +24,7 @@ public class CancelOrderMessageTest {
                 .toByteArray();
 
         byte[] actualMessageBytes =
-                new CancelOrderMessage(
+                new ForwardCancelMessage(
                         expectedPlayerId,
                         expectedOrderId,
                         expectedSymbol).encode();
@@ -34,7 +34,7 @@ public class CancelOrderMessageTest {
 
     @Test
     public void decodesIntoExpected() throws IOException {
-        Message.MessageType expectedMessageType = Message.MessageType.CANCEL_ORDER;
+        Message.MessageType expectedMessageType = Message.MessageType.FWD_CANCEL;
         short expectedPlayerId = 12;
         short expectedOrderId = 42;
         String expectedSymbol = "NVDA";
@@ -46,7 +46,7 @@ public class CancelOrderMessageTest {
                 .encodeString(expectedSymbol)
                 .toByteArray();
 
-        CancelOrderMessage victim = CancelOrderMessage.decode(messageBytes);
+        ForwardCancelMessage victim = ForwardCancelMessage.decode(messageBytes);
 
         assertEquals(expectedMessageType, victim.getMessageType());
         assertEquals(expectedPlayerId, victim.getPlayerId());
@@ -54,3 +54,4 @@ public class CancelOrderMessageTest {
         assertEquals(expectedSymbol, victim.getSymbol());
     }
 }
+
