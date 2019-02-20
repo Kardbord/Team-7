@@ -1,5 +1,6 @@
-package Messages;
+package messages;
 
+import messages.CancelOrderMessage;
 import org.junit.Test;
 
 import java.io.IOException;
