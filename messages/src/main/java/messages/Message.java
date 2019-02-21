@@ -34,8 +34,8 @@ public abstract class Message {
                 return ForwardOrderMessage.decode(messageBytes);
 //            case ORDER_CONFIRMATION:
 //                return OrderConfirmationMessage.decode(messageBytes);
-//            case FWD_ORDER_CONF:
-//                return ForwardOrderConfirmationMessage.decode(messageBytes);
+            case FWD_ORDER_CONF:
+                return ForwardOrderConfirmationMessage.decode(messageBytes);
             case CANCEL_ORDER:
                 return CancelOrderMessage.decode(messageBytes);
             case FWD_CANCEL:
