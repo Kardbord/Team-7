@@ -24,34 +24,34 @@ public abstract class Message {
         MessageType messageType = decoder.decodeMessageType();
 
         switch(messageType){
-//            case REGISTER_PLAYER:
-//                return RegisterPlayerMessage.decode(messageBytes);
+            case REGISTER_PLAYER:
+                return RegisterPlayerMessage.decode(messageBytes);
             case PLAYER_REGISTERED:
                 return PlayerRegisteredMessage.decode(messageBytes);
-//            case SUBMIT_ORDER:
-//                return SubmitOrderMessage.decode(messageBytes);
+            case SUBMIT_ORDER:
+                return SubmitOrderMessage.decode(messageBytes);
             case FORWARD_ORDER:
                 return ForwardOrderMessage.decode(messageBytes);
-//            case ORDER_CONFIRMATION:
-//                return OrderConfirmationMessage.decode(messageBytes);
+            case ORDER_CONFIRMATION:
+                return OrderConfirmationMessage.decode(messageBytes);
             case FWD_ORDER_CONF:
                 return ForwardOrderConfirmationMessage.decode(messageBytes);
             case CANCEL_ORDER:
                 return CancelOrderMessage.decode(messageBytes);
             case FWD_CANCEL:
                 return ForwardCancelMessage.decode(messageBytes);
-//            case CANCEL_CONF:
-//                return CancelConfirmationMessage.decode(messageBytes);
+            case CANCEL_CONF:
+                return CancelConfirmationMessage.decode(messageBytes);
 //            case FWD_CANCEL_CONF:
 //                return ForwardCancelConfirmationMessage.decode(messageBytes);
 //            case REGISTER_MATCHING_ENGINE:
 //                return RegisterMatchingEngineMessage.decode(messageBytes);
-//            case ACK:
-//                return AckMessage.decode(messageBytes);
+            case ACK:
+                return AckMessage.decode(messageBytes);
 //            case TOP_OF_BOOK_NOTIFICATION:
 //                return TopOfBookNotificationMessage.decode(messageBytes);
-//            case TOP_OF_BOOK_REQUEST:
-//                return TopOfBookRequestMessage.decode(messageBytes);
+            case TOP_OF_BOOK_REQUEST:
+                return TopOfBookRequestMessage.decode(messageBytes);
 //            case TOP_OF_BOOK_RESPONSE:
 //                return TopOfBookResponseMessage.decode(messageBytes);
             default:
