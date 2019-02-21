@@ -103,7 +103,7 @@ public class ForwardOrderConfirmationMessage extends Message {
             return (byte) this.ordinal();
         }
 
-        public static Status getStatusFromByte(byte orderTypeByte) {
+        public static Status getStatusFromByte(byte statusByte) {
             return Status.values()[orderTypeByte];
         }
 
