@@ -104,7 +104,7 @@ public class ForwardOrderConfirmationMessage extends Message {
         }
 
         public static Status getStatusFromByte(byte statusByte) {
-            return Status.values()[orderTypeByte];
+            return Status.values()[statusByte];
         }
 
         public static boolean contains(byte statusByte) {
