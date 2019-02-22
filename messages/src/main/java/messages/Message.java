@@ -42,18 +42,18 @@ public abstract class Message {
                 return ForwardCancelMessage.decode(messageBytes);
             case CANCEL_CONF:
                 return CancelConfirmationMessage.decode(messageBytes);
-//            case FWD_CANCEL_CONF:
-//                return ForwardCancelConfirmationMessage.decode(messageBytes);
-//            case REGISTER_MATCHING_ENGINE:
-//                return RegisterMatchingEngineMessage.decode(messageBytes);
+            case FWD_CANCEL_CONF:
+                return ForwardCancelConfirmationMessage.decode(messageBytes);
+            case REGISTER_MATCHING_ENGINE:
+                return RegisterMatchingEngineMessage.decode(messageBytes);
             case ACK:
                 return AckMessage.decode(messageBytes);
-//            case TOP_OF_BOOK_NOTIFICATION:
-//                return TopOfBookNotificationMessage.decode(messageBytes);
+            case TOP_OF_BOOK_NOTIFICATION:
+                return TopOfBookNotificationMessage.decode(messageBytes);
             case TOP_OF_BOOK_REQUEST:
                 return TopOfBookRequestMessage.decode(messageBytes);
-//            case TOP_OF_BOOK_RESPONSE:
-//                return TopOfBookResponseMessage.decode(messageBytes);
+            case TOP_OF_BOOK_RESPONSE:
+                return TopOfBookResponseMessage.decode(messageBytes);
             default:
                 throw new IllegalArgumentException();
         }
