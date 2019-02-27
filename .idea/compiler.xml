@@ -6,6 +6,7 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="communication-subsytem" />
         <module name="exchange-gateway" />
         <module name="matching-engine" />
         <module name="messages" />
@@ -14,6 +15,7 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="base-pom" target="1.11" />
+      <module name="communication-subsytem" target="1.11" />
       <module name="exchange-gateway" target="1.11" />
       <module name="matching-engine" target="1.11" />
       <module name="messages" target="1.11" />
