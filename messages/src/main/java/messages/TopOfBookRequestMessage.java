@@ -15,6 +15,16 @@ public class TopOfBookRequestMessage extends Message {
                 .toByteArray();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
     public static TopOfBookRequestMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 

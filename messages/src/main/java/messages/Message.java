@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.Objects;
 
 public abstract class Message {
 
@@ -63,6 +64,26 @@ public abstract class Message {
 
     public MessageType getMessageType() {
         return messageType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return messageType == message.messageType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messageType);
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "messageType=" + messageType +
+                '}';
     }
 
     protected static class Encoder {

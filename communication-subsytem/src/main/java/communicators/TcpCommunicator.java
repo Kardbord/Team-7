@@ -7,7 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Arrays;
 
-public class TcpCommunicator implements EnvelopeReceiver {
+public class TcpCommunicator implements EnvelopeReceiver<byte[]> {
 
     private Socket socket;
 
@@ -24,7 +24,7 @@ public class TcpCommunicator implements EnvelopeReceiver {
         outputStream.write(messageBytes);
     }
 
-    public Envelope receive() throws IOException {
+    public Envelope<byte[]> receive() throws IOException {
         InputStream inputStream = socket.getInputStream();
 
         byte[] buffer = new byte[5096];

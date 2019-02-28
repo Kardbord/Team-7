@@ -3,6 +3,7 @@ package messages;
 import messages.SubmitOrderMessage.OrderType;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ForwardOrderMessage extends Message {
 
@@ -11,6 +12,35 @@ public class ForwardOrderMessage extends Message {
     private short quantity;
     private short price;
     private String symbol;
+
+    @Override
+    public String toString() {
+        return "ForwardOrderMessage{" +
+                "playerId=" + playerId +
+                ", orderType=" + orderType +
+                ", quantity=" + quantity +
+                ", price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ForwardOrderMessage that = (ForwardOrderMessage) o;
+        return playerId == that.playerId &&
+                quantity == that.quantity &&
+                price == that.price &&
+                orderType == that.orderType &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), playerId, orderType, quantity, price, symbol);
+    }
 
     public ForwardOrderMessage(short playerId, OrderType orderType, short quantity, short price, String symbol) {
         super(MessageType.FORWARD_ORDER);

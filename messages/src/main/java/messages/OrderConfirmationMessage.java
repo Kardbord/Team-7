@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class OrderConfirmationMessage extends Message {
 
@@ -22,6 +23,39 @@ public class OrderConfirmationMessage extends Message {
         this.restingQty = restingQty;
         this.price = price;
         this.symbol = symbol;
+    }
+
+    @Override
+    public String toString() {
+        return "OrderConfirmationMessage{" +
+                "buyerPlayerId=" + buyerPlayerId +
+                ", sellerPlayerId=" + sellerPlayerId +
+                ", orderId=" + orderId +
+                ", executedQty=" + executedQty +
+                ", restingQty=" + restingQty +
+                ", price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        OrderConfirmationMessage that = (OrderConfirmationMessage) o;
+        return buyerPlayerId == that.buyerPlayerId &&
+                sellerPlayerId == that.sellerPlayerId &&
+                orderId == that.orderId &&
+                executedQty == that.executedQty &&
+                restingQty == that.restingQty &&
+                price == that.price &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), buyerPlayerId, sellerPlayerId, orderId, executedQty, restingQty, price, symbol);
     }
 
     public static OrderConfirmationMessage decode(byte[] messageBytes) {

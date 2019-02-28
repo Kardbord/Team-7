@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ForwardCancelMessage extends Message {
 
@@ -47,4 +48,29 @@ public class ForwardCancelMessage extends Message {
     public short getOrderId() { return orderId; }
 
     public String getSymbol() { return symbol; }
+
+    @Override
+    public String toString() {
+        return "ForwardCancelMessage{" +
+                "playerId=" + playerId +
+                ", orderId=" + orderId +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ForwardCancelMessage that = (ForwardCancelMessage) o;
+        return playerId == that.playerId &&
+                orderId == that.orderId &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), playerId, orderId, symbol);
+    }
 }

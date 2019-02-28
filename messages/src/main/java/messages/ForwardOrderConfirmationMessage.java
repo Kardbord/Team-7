@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class ForwardOrderConfirmationMessage extends Message {
 
@@ -22,6 +23,39 @@ public class ForwardOrderConfirmationMessage extends Message {
         this.restingQty = restingQty;
         this.price = price;
         this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return "ForwardOrderConfirmationMessage{" +
+                "orderId=" + orderId +
+                ", orderType=" + orderType +
+                ", symbol='" + symbol + '\'' +
+                ", executedQty=" + executedQty +
+                ", restingQty=" + restingQty +
+                ", price=" + price +
+                ", status=" + status +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ForwardOrderConfirmationMessage that = (ForwardOrderConfirmationMessage) o;
+        return orderId == that.orderId &&
+                executedQty == that.executedQty &&
+                restingQty == that.restingQty &&
+                price == that.price &&
+                orderType == that.orderType &&
+                Objects.equals(symbol, that.symbol) &&
+                status == that.status;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), orderId, orderType, symbol, executedQty, restingQty, price, status);
     }
 
     public static ForwardOrderConfirmationMessage decode(byte[] messageBytes) {

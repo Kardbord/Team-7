@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
 
-public class UdpCommunicator implements EnvelopeReceiver {
+public class UdpCommunicator implements EnvelopeReceiver<byte[]> {
 
     private DatagramChannel datagramChannel;
 
@@ -19,7 +19,7 @@ public class UdpCommunicator implements EnvelopeReceiver {
         datagramChannel.send(ByteBuffer.wrap(messageBytes), new InetSocketAddress(address, port));
     }
 
-    public Envelope receive() throws IOException {
+    public Envelope<byte[]> receive() throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(5096);
         InetSocketAddress sourceSocketAddress = (InetSocketAddress) datagramChannel.receive(buffer);
 

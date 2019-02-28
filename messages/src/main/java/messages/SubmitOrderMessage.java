@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class SubmitOrderMessage extends Message {
 
@@ -17,6 +18,35 @@ public class SubmitOrderMessage extends Message {
         this.quantity = quantity;
         this.price = price;
         this.symbol = symbol;
+    }
+
+    @Override
+    public String toString() {
+        return "SubmitOrderMessage{" +
+                "playerId=" + playerId +
+                ", orderType=" + orderType +
+                ", quantity=" + quantity +
+                ", price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        SubmitOrderMessage that = (SubmitOrderMessage) o;
+        return playerId == that.playerId &&
+                quantity == that.quantity &&
+                price == that.price &&
+                orderType == that.orderType &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), playerId, orderType, quantity, price, symbol);
     }
 
     public static SubmitOrderMessage decode(byte[] messageBytes) {

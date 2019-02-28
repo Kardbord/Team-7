@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class RegisterMatchingEngineMessage extends Message {
 
@@ -33,5 +34,26 @@ public class RegisterMatchingEngineMessage extends Message {
 
     public String getSymbol() {
         return symbol;
+    }
+
+    @Override
+    public String toString() {
+        return "RegisterMatchingEngineMessage{" +
+                "symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        RegisterMatchingEngineMessage that = (RegisterMatchingEngineMessage) o;
+        return Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), symbol);
     }
 }

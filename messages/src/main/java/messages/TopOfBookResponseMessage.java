@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class TopOfBookResponseMessage extends Message {
 
@@ -67,5 +68,34 @@ public class TopOfBookResponseMessage extends Message {
 
     public short getAskQuantity() {
         return askQuantity;
+    }
+
+    @Override
+    public String toString() {
+        return "TopOfBookResponseMessage{" +
+                "symbol='" + symbol + '\'' +
+                ", bidPrice=" + bidPrice +
+                ", bidQuantity=" + bidQuantity +
+                ", askPrice=" + askPrice +
+                ", askQuantity=" + askQuantity +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        TopOfBookResponseMessage that = (TopOfBookResponseMessage) o;
+        return bidPrice == that.bidPrice &&
+                bidQuantity == that.bidQuantity &&
+                askPrice == that.askPrice &&
+                askQuantity == that.askQuantity &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), symbol, bidPrice, bidQuantity, askPrice, askQuantity);
     }
 }

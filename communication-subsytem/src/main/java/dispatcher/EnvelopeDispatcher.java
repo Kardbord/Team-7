@@ -14,9 +14,9 @@ import java.util.function.Function;
 public class EnvelopeDispatcher<T> implements Runnable {
     private Map<Class<?>, List<Consumer<?>>> typeToConsumerMap = new HashMap<>();
     private Function<T, Object> decoder;
-    private EnvelopeReceiver envelopeReceiver;
+    private EnvelopeReceiver<T> envelopeReceiver;
 
-    public EnvelopeDispatcher(EnvelopeReceiver envelopeReceiver, Function<T, Object> decoder) {
+    public EnvelopeDispatcher(EnvelopeReceiver<T> envelopeReceiver, Function<T, Object> decoder) {
         this.envelopeReceiver = envelopeReceiver;
         this.decoder = decoder;
     }

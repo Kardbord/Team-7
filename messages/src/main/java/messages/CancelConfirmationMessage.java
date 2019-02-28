@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class CancelConfirmationMessage extends Message{
 
@@ -57,5 +58,32 @@ public class CancelConfirmationMessage extends Message{
 
     public String getSymbol() {
         return symbol;
+    }
+
+    @Override
+    public String toString() {
+        return "CancelConfirmationMessage{" +
+                "playerId=" + playerId +
+                ", orderId=" + orderId +
+                ", cancelledQty=" + cancelledQty +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        CancelConfirmationMessage that = (CancelConfirmationMessage) o;
+        return playerId == that.playerId &&
+                orderId == that.orderId &&
+                cancelledQty == that.cancelledQty &&
+                Objects.equals(symbol, that.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), playerId, orderId, cancelledQty, symbol);
     }
 }
