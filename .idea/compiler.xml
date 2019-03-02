@@ -20,6 +20,7 @@
       <module name="matching-engine" target="1.11" />
       <module name="messages" target="1.11" />
       <module name="player" target="1.11" />
+      <module name="Team-7" target="1.11" />
     </bytecodeTargetLevel>
   </component>
 </project>

@@ -31,7 +31,7 @@ public class PlayerRegisteredMessage extends Message{
         return Objects.hash(super.hashCode(), playerId, initialCash);
     }
 
-    PlayerRegisteredMessage(short playerId, int initialCash){
+    public PlayerRegisteredMessage(short playerId, int initialCash){
         super(MessageType.PLAYER_REGISTERED);
         this.playerId = playerId;
         this.initialCash = initialCash;
