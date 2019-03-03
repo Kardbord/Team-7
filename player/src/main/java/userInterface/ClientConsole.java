@@ -2,9 +2,10 @@ package userInterface;
 
 import player.Player;
 
+import java.io.IOException;
 import java.util.Scanner;
 
-public class Main {
+public class ClientConsole {
 
     private static Scanner scanner = new Scanner(System.in);
 
@@ -45,12 +46,10 @@ public class Main {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // TODO: This is solely for working on HW3. Will need to be redone later.
         printMenu();
         Player player = new Player(getUserInput("Name: "));
-        player.setCash(1000);
-        player.setPlayerId(1);
         printPlayerMenu(player);
 
     }

@@ -1,12 +1,15 @@
 package player;
 
 import org.junit.Test;
+
+import java.io.IOException;
+
 import static org.junit.Assert.assertEquals;
 
 public class PlayerTest {
 
     @Test
-    public void createPlayerTest() {
+    public void createPlayerTest() throws IOException {
         String name = "John";
         int playerId = 42;
         int cash = 1000;
