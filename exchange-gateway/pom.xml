@@ -8,7 +8,11 @@
             <groupId>team7</groupId>
             <artifactId>messages</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>team7</groupId>
+            <artifactId>communication-subsytem</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
