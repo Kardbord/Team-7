@@ -11,6 +11,7 @@ import org.apache.logging.log4j.MarkerManager;
 import utils.Utils;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 
@@ -27,7 +28,22 @@ public class Player {
 
     public Player(String name) throws IOException {
         this.name = name;
-        this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(), Utils.PORT);
+        this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(),Utils.PORT);
+        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open());
+        registerPlayer();
+        initPlayerRegisteredListener();
+
+    }
+
+    /**
+     * Overloaded constructor for specifying a server IP
+     * @param name
+     * @param serverAddress
+     * @throws IOException
+     */
+    public Player(String name, String serverAddress) throws IOException {
+        this.name = name;
+        this.serverSocketAddress = new InetSocketAddress(serverAddress,Utils.PORT);
         this.udpCommunicator = new UdpCommunicator(DatagramChannel.open());
         registerPlayer();
         initPlayerRegisteredListener();

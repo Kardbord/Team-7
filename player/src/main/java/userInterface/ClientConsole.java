@@ -27,12 +27,21 @@ public class ClientConsole {
                         "\t\t|Player ID: %-15d           |\t\t\n" +
                         "\t\t|Cash: %-15d                |\t\t\n" +
                         "\t\t+-------------------------------------+\t\t\n" +
-                        "\t\t(B)uy, (S)ell, (E)xit, (P)ortfolio\t\t\n" +
-                        "$> ",
+                        "\t\t(B)uy, (S)ell, (E)xit, (P)ortfolio\t\t\n",
                 player.getName(),
                 player.getPlayerId(),
                 player.getCash()
         );
+        String input = getUserInput("$> ");
+        switch (input) {
+            case "E":
+                System.exit(0);
+                break;
+            case "e":
+                System.exit(0);
+                break;
+
+        }
     }
 
     private static String getUserInput(String prompt) {
@@ -49,7 +58,13 @@ public class ClientConsole {
     public static void main(String[] args) throws IOException {
         // TODO: This is solely for working on HW3. Will need to be redone later.
         printMenu();
-        Player player = new Player(getUserInput("Name: "));
+        Player player;
+        if (args.length < 2) {
+            player = new Player(getUserInput("Name: "));
+        }
+        else {
+            player = new Player(getUserInput("Name: "), args[1]);
+        }
         printPlayerMenu(player);
 
     }

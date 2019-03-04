@@ -9,13 +9,13 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 
 public class Utils {
-    public static int PORT = 12001;
+    public static int PORT = 2000;
 
     public static String getLocalIp() {
         return "127.0.0.1";
     }
     public static void setPort() {
-        PORT = 12001;
+        PORT = 2000;
     }
 
     /**
