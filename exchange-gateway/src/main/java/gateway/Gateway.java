@@ -7,6 +7,8 @@ import dispatcher.EnvelopeDispatcher;
 import messages.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +51,7 @@ public class Gateway {
         this.symbolToMatchingEngineMap = new ConcurrentHashMap<>();
         this.idToPlayerDetailMap = new ConcurrentHashMap<>();
         this.symbolToTopOfBookMap = new ConcurrentHashMap<>();
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open());
+        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("127.0.0.1", PORT));
         initRegisterMatchingEngineListener();
         initRegisterPlayerListener();
         initTopOfBookRefresh();

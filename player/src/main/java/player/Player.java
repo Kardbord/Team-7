@@ -6,12 +6,10 @@ import communicators.UdpCommunicator;
 import communicators.Envelope;
 import dispatcher.EnvelopeDispatcher;
 import messages.*;
-import org.apache.logging.log4j.Marker;
-import org.apache.logging.log4j.MarkerManager;
+import userInterface.ClientConsole;
 import utils.Utils;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 
@@ -29,7 +27,7 @@ public class Player {
     public Player(String name) throws IOException {
         this.name = name;
         this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(),Utils.PORT);
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open());
+        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
         registerPlayer();
         initPlayerRegisteredListener();
 
@@ -44,7 +42,7 @@ public class Player {
     public Player(String name, String serverAddress) throws IOException {
         this.name = name;
         this.serverSocketAddress = new InetSocketAddress(serverAddress,Utils.PORT);
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open());
+        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
         registerPlayer();
         initPlayerRegisteredListener();
 
@@ -89,6 +87,7 @@ public class Player {
         this.cash = env.getMessage().getInitialCash();
         log.info("PlayerID: " + this.playerId);
         log.info("Cash: " + this.cash);
+        ClientConsole.printPlayerMenu(this);
     }
 
     public String getName() {

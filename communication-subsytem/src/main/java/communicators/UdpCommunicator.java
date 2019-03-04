@@ -11,8 +11,12 @@ public class UdpCommunicator implements EnvelopeReceiver<byte[]> {
 
     private DatagramChannel datagramChannel;
 
-    public UdpCommunicator(DatagramChannel datagramChannel) {
+    public UdpCommunicator(DatagramChannel datagramChannel, InetSocketAddress address) throws IOException{
         this.datagramChannel = datagramChannel;
+        if (address.getPort() != 0)
+            this.datagramChannel.bind(address);
+        else
+            this.datagramChannel.bind(null);
     }
 
     public void send(byte[] messageBytes, InetAddress address, int port) throws IOException {

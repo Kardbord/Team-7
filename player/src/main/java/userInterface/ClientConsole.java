@@ -20,7 +20,7 @@ public class ClientConsole {
         );
     }
 
-    private static void printPlayerMenu(Player player) {
+    public static void printPlayerMenu(Player player) {
         System.out.printf(
                         "\t\t+-------------------------------------+\t\t\n" +
                         "\t\t|Name: %-15s                |\t\t\n" +
@@ -65,7 +65,6 @@ public class ClientConsole {
         else {
             player = new Player(getUserInput("Name: "), args[1]);
         }
-        printPlayerMenu(player);
 
     }
 }
