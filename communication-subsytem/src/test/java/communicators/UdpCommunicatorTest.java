@@ -20,8 +20,8 @@ public class UdpCommunicatorTest {
     private DatagramChannel datagramChannel = mock(DatagramChannel.class);
 
     @Before
-    public void setup() {
-        victim = new UdpCommunicator(datagramChannel);
+    public void setup() throws IOException{
+        victim = new UdpCommunicator(datagramChannel, new InetSocketAddress(0));
     }
 
     @Test
