@@ -16,6 +16,7 @@
         </dependency>
     </dependencies>
 
+
     <parent>
         <groupId>team7</groupId>
         <artifactId>base-pom</artifactId>
