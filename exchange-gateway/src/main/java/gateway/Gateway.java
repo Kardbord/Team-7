@@ -5,15 +5,18 @@ import communicators.TcpCommunicator;
 import communicators.UdpCommunicator;
 import dispatcher.EnvelopeDispatcher;
 import messages.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Gateway {
+
+    private Logger log = LogManager.getFormatterLogger(Gateway.class.getName());
 
     /**
      * Rate is in milliseconds
@@ -63,12 +66,17 @@ public class Gateway {
             while (true) {
                 try {
                     Thread.sleep(TOP_OF_BOOK_REFRESH_RATE);
-                    symbolToMatchingEngineMap.forEach((__, tcpCommunicator) -> {
+                    symbolToMatchingEngineMap.forEach((symbol, tcpCommunicator) -> {
                         try {
                             tcpCommunicator.send(new TopOfBookRequestMessage().encode());
-                        } catch (IOException ignored) { /* continue */ }
+                            log.info("Sent TopOfBookRefresh request to {}", symbol);
+                        } catch (IOException e) {
+                            log.error("Failure in Gateway while requesting Top Of Book from {} -> {}", symbol, e.getMessage());
+                        }
                     });
-                } catch (InterruptedException ignored) { /* continue */ }
+                } catch (InterruptedException e) {
+                    log.error("Top of Book refresh interrupted -> {}", e.getMessage());
+                }
             }
         }).start();
     }
@@ -93,12 +101,19 @@ public class Gateway {
                                         playerDetailEntry.getSocketAddress().getAddress(),
                                         playerDetailEntry.getSocketAddress().getPort()
                                 );
+                                log.info(
+                                        "Sent TopOfBookNotificationMessage to player {}: {}",
+                                        playerDetailEntry.getId(),
+                                        playerDetailEntry.getName()
+                                );
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                log.error("Failure in Gateway while broadcasting Top Of Book to {} -> {}", symbol, e.getMessage());
                             }
                         });
                     });
-                } catch (InterruptedException ignored) { /* continue */ }
+                } catch (InterruptedException e) {
+                    log.error("Top of Book broadcast interrupted -> {}", e.getMessage());
+                }
             }
         }).start();
     }
@@ -110,7 +125,8 @@ public class Gateway {
                 TcpCommunicator tcpCommunicator;
                 try {
                     tcpCommunicator = new TcpCommunicator(serverSocket.accept());
-                } catch (IOException ignored) {
+                } catch (IOException e) {
+                    log.error("Failure in Gateway RegisterMatchingEngine listener while awaiting connection -> {}", e.getMessage());
                     continue;
                 }
                 EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(tcpCommunicator, Message::decode);
@@ -120,10 +136,12 @@ public class Gateway {
                             try {
                                 registerMatchingEngine(env, tcpCommunicator);
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                log.error("Failure while attempting to register Matching Engine -> {}", e.getMessage());
                             }
                         });
+                log.info("Registered handler for RegisterMatchingEngineMessage");
                 envelopeDispatcher.registerForDispatch(TopOfBookResponseMessage.class, this::updateTopOfBook);
+                log.info("Registered handler for TopOfBookResponseMessage");
                 // TODO: registerForDispatch any other messages we need to listen for
 
                 new Thread(envelopeDispatcher).start();
@@ -133,8 +151,11 @@ public class Gateway {
 
     private void registerMatchingEngine(Envelope<RegisterMatchingEngineMessage> envelope, TcpCommunicator tcpCommunicator) throws IOException {
         this.symbolToMatchingEngineMap.put(envelope.getMessage().getSymbol(), tcpCommunicator);
+        log.info("Received RegisterMatchingEngineMessage from {}", envelope.getMessage().getSymbol());
         tcpCommunicator.send(new AckMessage().encode());
+        log.info("Sent AckMessage to {}", envelope.getMessage().getSymbol());
         tcpCommunicator.send(new TopOfBookRequestMessage().encode());
+        log.info("Sent TopOfBookRequestMessage to {}", envelope.getMessage().getSymbol());
     }
 
     private void updateTopOfBook(Envelope<TopOfBookResponseMessage> envelope) {
@@ -149,6 +170,7 @@ public class Gateway {
                         msg.getAskQuantity()
                 )
         );
+        log.info("Received TopOfBookResponseMessage from {}", msg.getSymbol());
     }
 
     private void initRegisterPlayerListener() {
@@ -156,6 +178,7 @@ public class Gateway {
         envelopeDispatcher.registerForDispatch(RegisterPlayerMessage.class, this::registerPlayer);
         // TODO: registerForDispatch any other messages we need to listen for
         new Thread(envelopeDispatcher).start();
+        log.info("Registered handler for RegisterPlayerMessage");
     }
 
     private void registerPlayer(Envelope<RegisterPlayerMessage> envelope) {
@@ -165,6 +188,7 @@ public class Gateway {
         );
 
         this.idToPlayerDetailMap.put(newPlayerDetailEntry.getId(), newPlayerDetailEntry);
+        log.info("Received RegisterPlayerMessage from {}", newPlayerDetailEntry.getName());
 
         try {
             this.udpCommunicator.send(
@@ -175,8 +199,9 @@ public class Gateway {
                     newPlayerDetailEntry.getSocketAddress().getAddress(),
                     newPlayerDetailEntry.getSocketAddress().getPort()
             );
+            log.info("Sent PlayerRegisteredMessage to {} -- assigned playerId {}", newPlayerDetailEntry.getName(), newPlayerDetailEntry.getId());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failure in Gateway::registerPlayer -> {}", e.getMessage());
         }
     }
 

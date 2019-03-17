@@ -27,7 +27,7 @@ class PlayerDetailEntry {
         return PlayerDetailEntry.nextPlayerId++;
     }
 
-    private static short getNextPlayerId() {
+    static short getNextPlayerId() {
         return PlayerDetailEntry.nextPlayerId;
     }
 
