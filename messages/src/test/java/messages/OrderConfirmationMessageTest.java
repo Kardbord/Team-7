@@ -12,8 +12,7 @@ public class OrderConfirmationMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.ORDER_CONFIRMATION;
-        short expectedBuyerPlayerId = 1;
-        short expectedSellerPlayerId = 2;
+        short expectedPlayerId = 2;
         short expectedOrderId = 3;
         short expectedExecutedQty = 4;
         short expectedRestingQty = 5;
@@ -22,8 +21,7 @@ public class OrderConfirmationMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
-                .encodeShort(expectedBuyerPlayerId)
-                .encodeShort(expectedSellerPlayerId)
+                .encodeShort(expectedPlayerId)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
@@ -32,7 +30,7 @@ public class OrderConfirmationMessageTest {
                 .toByteArray();
 
         byte[] actualMessageBytes =
-                new OrderConfirmationMessage(expectedBuyerPlayerId, expectedSellerPlayerId, expectedOrderId,
+                new OrderConfirmationMessage(expectedPlayerId, expectedOrderId,
                         expectedExecutedQty, expectedRestingQty, expectedPrice, expectedSymbol).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
@@ -41,8 +39,7 @@ public class OrderConfirmationMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.ORDER_CONFIRMATION;
-        short expectedBuyerPlayerId = 1;
-        short expectedSellerPlayerId = 2;
+        short expectedPlayerId = 2;
         short expectedOrderId = 3;
         short expectedExecutedQty = 4;
         short expectedRestingQty = 5;
@@ -51,8 +48,7 @@ public class OrderConfirmationMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
-                .encodeShort(expectedBuyerPlayerId)
-                .encodeShort(expectedSellerPlayerId)
+                .encodeShort(expectedPlayerId)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
@@ -63,8 +59,7 @@ public class OrderConfirmationMessageTest {
         OrderConfirmationMessage victim = OrderConfirmationMessage.decode(messageBytes);
 
         assertEquals(expectedMessageType, victim.getMessageType());
-        assertEquals(expectedBuyerPlayerId, victim.getBuyerPlayerId());
-        assertEquals(expectedSellerPlayerId, victim.getSellerPlayerId());
+        assertEquals(expectedPlayerId, victim.getPlayerId());
         assertEquals(expectedOrderId, victim.getOrderId());
         assertEquals(expectedExecutedQty, victim.getExecutedQty());
         assertEquals(expectedRestingQty, victim.getRestingQty());

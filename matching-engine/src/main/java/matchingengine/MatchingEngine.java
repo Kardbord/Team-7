@@ -6,9 +6,7 @@ import messages.*;
 import communicators.*;
 import java.io.*;
 import java.net.*;
-import java.security.spec.ECField;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Vector;
 
 public class MatchingEngine {
@@ -24,14 +22,9 @@ public class MatchingEngine {
     //private final static String IP = "127.0.0.1";
     private Socket socket;
     private TcpCommunicator tcpCommunicator;
-   //sellers from cheapest to most expensive, buyers most expensive to cheapest
+    //sellers from cheapest to most expensive, buyers most expensive to cheapest
     private Vector<Order> buyers = new Vector<>();
     private Vector<Order> sellers = new Vector<>();
-
-    //private HashMap orders = new HashMap(100);
-
-
-
 
     public MatchingEngine(String symbol, short bidPrice){
         this.symbol=symbol;
@@ -54,8 +47,6 @@ public class MatchingEngine {
         }catch (Exception ex){
             System.out.println(ex);
         }
-
-
     }
 
 
@@ -117,140 +108,151 @@ public class MatchingEngine {
         String orderSymbol=forwardOrderMessage.getSymbol();
         orderIdCounter++;
         short executedQty=0;
-        short restingQty=orderQuantity;
-        //keeps track of who needs a message
-        short[] involvedPlayerIds=new short[orderQuantity];
-        int numPlayerIds=0;
+        short remainingOrderQuantity=orderQuantity;
+        boolean orderComplete=false;
         if(orderOrderType == SubmitOrderMessage.OrderType.BUY){
-            boolean orderComplete=false;
-            for(int i=0;i<sellers.size()&&orderComplete==false;i++){
-                //starting at cheapest price, if we match, go through as many in the order quantity as possible
-                if(orderPrice==sellers.get(i).getPrice()){
-                    involvedPlayerIds[numPlayerIds]=sellers.get(i).getPlayerId();
-                    numPlayerIds++;
-                    //if seller order has higher quantity, decrement with the amount of the order, complete the
-                    //order, and send your messages
-                    if(sellers.get(i).getQuantity()>orderQuantity){
-                        short sellerQuantity=sellers.get(i).getQuantity();
-                        sellers.get(i).setQuantity((short)(sellerQuantity-orderQuantity));
-                        executedQty=orderQuantity;
-                        restingQty=0;
+            for(int i=0;i<sellers.size()&&!orderComplete;i++){
+                if(orderPrice>=sellers.get(i).getPrice()){
+                    if(sellers.get(i).getQuantity()==remainingOrderQuantity){
                         orderComplete=true;
-                        //TODO order messages need to be redone for ids,executed quantity,resting qty,
-                        OrderConfirmationMessage orderConfirmationMessage=new OrderConfirmationMessage(orderPlayerId,sellers.get(i).getPlayerId(),orderIdCounter,executedQty,restingQty,orderPrice,orderSymbol);
+                        OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
+                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),
+                                sellers.get(i).getQuantity(), (short)0,sellers.get(i).getPrice(),
+                                sellers.get(i).getSymbol()
+                        );
+                        //TODO should this orderprice be sellers(i) order price?
+                        OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
+                                orderPlayerId, orderIdCounter,orderQuantity,(short)0,orderPrice,
+                                orderSymbol);
+                        try {
+                            tcpCommunicator.send(orderConfirmationMessage1.encode());
+                            tcpCommunicator.send(orderConfirmationMessage2.encode());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        sellers.remove(i);
+                        i--;
+                    }
+                    else if(sellers.get(i).getQuantity()<remainingOrderQuantity){
+                        OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),
+                                sellers.get(i).getQuantity(),(short)0,sellers.get(i).getPrice(),orderSymbol
+                        );
                         try {
                             tcpCommunicator.send(orderConfirmationMessage.encode());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    }
-                    //if seller order quantity is less than orderQuantity, use whole quantity of seller i,
-                    //and move on to next seller.
-                    else if(sellers.get(i).getQuantity()<orderQuantity){
                         executedQty+=sellers.get(i).getQuantity();
-                        restingQty-=sellers.get(i).getQuantity();
-                        orderQuantity=(short)(orderQuantity-sellers.get(i).getQuantity());
-                        //sellers.get(i).setQuantity((short)0);
+                        remainingOrderQuantity=(short)(remainingOrderQuantity-sellers.get(i).getQuantity());
                         sellers.remove(i);
                         i--;
                     }
-                    else if(sellers.get(i).getQuantity()==orderQuantity){
-                        executedQty+=orderQuantity;
-                        restingQty=0;
-                        sellers.remove(i);
-                        i--;
+                    else if(sellers.get(i).getQuantity()>remainingOrderQuantity){
                         orderComplete=true;
-                        OrderConfirmationMessage orderConfirmationMessage=new OrderConfirmationMessage(orderPlayerId,sellers.get(i).getPlayerId(),orderIdCounter,executedQty,restingQty,orderPrice,orderSymbol);
+                        sellers.get(i).setQuantity((short)(sellers.get(i).getQuantity()-remainingOrderQuantity));
+                        OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
+                                orderPlayerId,orderIdCounter,orderQuantity,(short)0,orderPrice,orderSymbol
+                        );
+                        OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
+                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),remainingOrderQuantity,
+                                sellers.get(i).getQuantity(),sellers.get(i).getPrice(),orderSymbol
+                        );
                         try {
-                            tcpCommunicator.send(orderConfirmationMessage.encode());
+                            tcpCommunicator.send(orderConfirmationMessage1.encode());
+                            tcpCommunicator.send(orderConfirmationMessage2.encode());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-
                     }
                 }
-            }
-        }else if (orderOrderType == SubmitOrderMessage.OrderType.SELL){
-            boolean orderComplete=false;
-            for(int i=0;i<buyers.size()&&orderComplete==false;i++){
-                //starting at cheapest price, if we match, go through as many in the order quantity as possible
-                if(orderPrice==buyers.get(i).getPrice()){
-                    involvedPlayerIds[numPlayerIds]=buyers.get(i).getPlayerId();
-                    numPlayerIds++;
-                    //if seller order has higher quantity, decrement with the amount of the order, complete the
-                    //order, and send your messages
-                    if(buyers.get(i).getQuantity()>orderQuantity){
-                        short sellerQuantity=buyers.get(i).getQuantity();
-                        buyers.get(i).setQuantity((short)(sellerQuantity-orderQuantity));
-                        executedQty=orderQuantity;
-                        restingQty=0;
-                        orderComplete=true;
-                        OrderConfirmationMessage orderConfirmationMessage=new OrderConfirmationMessage(
-                                buyers.get(i).getPlayerId(),orderPlayerId,orderIdCounter
-                                ,executedQty,restingQty,orderPrice,orderSymbol);
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    //if seller order quantity is less than orderQuantity, use whole quantity of seller i,
-                    //and move on to next seller.
-                    else if(buyers.get(i).getQuantity()<orderQuantity){
-                        executedQty+=buyers.get(i).getQuantity();
-                        restingQty-=buyers.get(i).getQuantity();
-                        orderQuantity=(short)(orderQuantity-buyers.get(i).getQuantity());
-                        //sellers.get(i).setQuantity((short)0);
-                        buyers.remove(i);
-                        i--;
-                    }
-                    else if(buyers.get(i).getQuantity()==orderQuantity){
-                        executedQty+=orderQuantity;
-                        restingQty=0;
-                        buyers.remove(i);
-                        i--;
-                        orderComplete=true;
-                        OrderConfirmationMessage orderConfirmationMessage=new OrderConfirmationMessage(
-                                buyers.get(i).getPlayerId(),orderPlayerId,orderIdCounter
-                                ,executedQty,restingQty,orderPrice,orderSymbol);
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
 
-                    }
-                }
             }
-
-        }
-        //if there is still more quantity, add the order to the resting book
-        if (orderQuantity>0){
-            Order order=new Order(orderPlayerId, orderOrderType, orderQuantity, orderPrice, orderSymbol,orderIdCounter);
-            if(orderOrderType== SubmitOrderMessage.OrderType.SELL){
-                sellers.add(order);
-                //TODO sort all orders
-            }
-            else if (orderOrderType== SubmitOrderMessage.OrderType.BUY){
+            //if the order didn't finish, add it to the resting book
+            //TODO makers sure buyers resting book is ordered by price(greatest to least)
+            if(orderComplete==false){
+                Order order=new Order(orderPlayerId,orderOrderType,remainingOrderQuantity,orderPrice,
+                        orderSymbol,orderIdCounter);
                 buyers.add(order);
-                //TODO sort all orders
+                Collections.sort(buyers, Collections.reverseOrder());
+                OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                        orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
+                );
             }
-            OrderConfirmationMessage orderConfirmationMessage=new OrderConfirmationMessage(orderPlayerId,(short)-1,orderIdCounter,executedQty,restingQty,orderPrice,orderSymbol);
-            try {
-                tcpCommunicator.send(orderConfirmationMessage.encode());
-            } catch (IOException e) {
-                e.printStackTrace();
+
+        }
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        else if(orderOrderType == SubmitOrderMessage.OrderType.SELL){
+            for(int i=0;i<buyers.size()&&!orderComplete;i++){
+                if(orderPrice<=buyers.get(i).getPrice()){
+                    if(buyers.get(i).getQuantity()==remainingOrderQuantity){
+                        orderComplete=true;
+                        OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
+                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),
+                                buyers.get(i).getQuantity(), (short)0,buyers.get(i).getPrice(),
+                                buyers.get(i).getSymbol()
+                        );
+                        OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
+                                orderPlayerId, orderIdCounter,orderQuantity,(short)0,orderPrice,
+                                orderSymbol);
+                        try {
+                            tcpCommunicator.send(orderConfirmationMessage1.encode());
+                            tcpCommunicator.send(orderConfirmationMessage2.encode());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        buyers.remove(i);
+                        i--;
+                    }
+                    else if(buyers.get(i).getQuantity()<remainingOrderQuantity){
+                        OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),
+                                buyers.get(i).getQuantity(),(short)0,buyers.get(i).getPrice(),orderSymbol
+                        );
+                        try {
+                            tcpCommunicator.send(orderConfirmationMessage.encode());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        executedQty+=buyers.get(i).getQuantity();
+                        remainingOrderQuantity=(short)(remainingOrderQuantity-buyers.get(i).getQuantity());
+                        buyers.remove(i);
+                        i--;
+                    }
+                    else if(buyers.get(i).getQuantity()>remainingOrderQuantity){
+                        orderComplete=true;
+                        buyers.get(i).setQuantity((short)(buyers.get(i).getQuantity()-remainingOrderQuantity));
+                        OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
+                                orderPlayerId,orderIdCounter,orderQuantity,(short)0,orderPrice,orderSymbol
+                        );
+                        OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
+                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),remainingOrderQuantity,
+                                buyers.get(i).getQuantity(),buyers.get(i).getPrice(),orderSymbol
+                        );
+                        try {
+                            tcpCommunicator.send(orderConfirmationMessage1.encode());
+                            tcpCommunicator.send(orderConfirmationMessage2.encode());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+            }
+            //if the order didn't finish, add it to the resting book
+            if(orderComplete==false){
+                Order order=new Order(orderPlayerId,orderOrderType,remainingOrderQuantity,orderPrice,
+                        orderSymbol,orderIdCounter);
+                sellers.add(order);
+                Collections.sort(sellers);
+                OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                        orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
+                );
             }
         }
-        //TODO Send confirmation messages
-        //TODO we may need a redo in structure here...
-//        Order Confirmation: When an order does not match, the ME sends an Order Confirmation
-//        Message with executedQty = 0 and fills in one of the PlayerIDs with a reserved playerID
-//        (something like 0 or -1)
-
-
-
     }
+
+
 
 
 
@@ -258,7 +260,6 @@ public class MatchingEngine {
 
     public static void main(String[] args) {
         MatchingEngine matchingEngine=new MatchingEngine("GOOG",(short)45);
-
     }
 
-    }
+}

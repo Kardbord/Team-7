@@ -2,7 +2,7 @@ package matchingengine;
 
 import messages.SubmitOrderMessage;
 
-public class Order {
+public class Order implements Comparable<Order> {
     private short orderID;
     private short playerId;
     private SubmitOrderMessage.OrderType orderType;
@@ -17,6 +17,11 @@ public class Order {
         this.price=price;
         this.symbol=symbol;
         this.orderID=orderID;
+    }
+    public int compareTo(Order order2){
+        //TODO get this working right
+        int diff = this.price-order2.price;
+        return diff;
     }
     public short getOrderID() {
         return orderID;
