@@ -16,6 +16,13 @@ public class ForwardCancelMessage extends Message {
         this.symbol = symbol;
     }
 
+    public ForwardCancelMessage(CancelOrderMessage cancelOrderMessage) {
+        super(MessageType.FWD_CANCEL);
+        this.playerId = cancelOrderMessage.getPlayerId();
+        this.orderId = cancelOrderMessage.getOrderId();
+        this.symbol = cancelOrderMessage.getSymbol();
+    }
+
     public static ForwardCancelMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 

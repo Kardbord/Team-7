@@ -51,6 +51,15 @@ public class ForwardOrderMessage extends Message {
         this.symbol = symbol;
     }
 
+    public ForwardOrderMessage(SubmitOrderMessage orderMessage) {
+        super(MessageType.FORWARD_ORDER);
+        this.playerId = orderMessage.getPlayerId();
+        this.orderType = orderMessage.getOrderType();
+        this.quantity = orderMessage.getQuantity();
+        this.price = orderMessage.getPrice();
+        this.symbol = orderMessage.getSymbol();
+    }
+
     public static ForwardOrderMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 

@@ -27,7 +27,16 @@ public class ForwardCancelConfirmationMessageTest {
                         expectedOrderId,
                         expectedCancelledQty,
                         expectedSymbol).encode();
+        assertArrayEquals(expectedMessageBytes, actualMessageBytes);
 
+        actualMessageBytes = new ForwardCancelConfirmationMessage(
+                new CancelConfirmationMessage(
+                        (short) 0,
+                        expectedOrderId,
+                        expectedCancelledQty,
+                        expectedSymbol
+                )
+        ).encode();
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
     }
 

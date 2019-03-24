@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.DatagramChannel;
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Gateway {
 
-    private Logger log = LogManager.getFormatterLogger(Gateway.class.getName());
+    private static final Logger LOG = LogManager.getFormatterLogger(Gateway.class.getName());
 
     /**
      * Rate is in milliseconds
@@ -50,13 +51,16 @@ public class Gateway {
      */
     private ConcurrentHashMap<String, TopOfBookEntry> symbolToTopOfBookMap;
 
+    private EnvelopeDispatcher<byte[]> udpDispatcher;
+
     public Gateway() throws IOException {
         this.symbolToMatchingEngineMap = new ConcurrentHashMap<>();
         this.idToPlayerDetailMap = new ConcurrentHashMap<>();
         this.symbolToTopOfBookMap = new ConcurrentHashMap<>();
         this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("127.0.0.1", PORT));
-        initRegisterMatchingEngineListener();
-        initRegisterPlayerListener();
+        this.udpDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
+        initMatchingEngineMessageListeners();
+        initUdpDispatcherListeners();
         initTopOfBookRefresh();
         initTopOfBookBroadcast();
     }
@@ -69,16 +73,17 @@ public class Gateway {
                     symbolToMatchingEngineMap.forEach((symbol, tcpCommunicator) -> {
                         try {
                             tcpCommunicator.send(new TopOfBookRequestMessage().encode());
-                            log.info("Sent TopOfBookRefresh request to {}", symbol);
+                            LOG.info("Sent TopOfBookRefresh request to %s", symbol);
                         } catch (IOException e) {
-                            log.error("Failure in Gateway while requesting Top Of Book from {} -> {}", symbol, e.getMessage());
+                            LOG.error("Failure in Gateway while requesting Top Of Book from %s -> %s", symbol, e.getMessage());
                         }
                     });
                 } catch (InterruptedException e) {
-                    log.error("Top of Book refresh interrupted -> {}", e.getMessage());
+                    LOG.error("Top of Book refresh interrupted -> %s", e.getMessage());
                 }
             }
         }).start();
+        LOG.info("Initialized TopOfBookRefresh worker");
     }
 
     private void initTopOfBookBroadcast() {
@@ -86,39 +91,42 @@ public class Gateway {
             while (true) {
                 try {
                     Thread.sleep(TOP_OF_BOOK_BROADCAST_RATE);
-                    idToPlayerDetailMap.forEach((__, playerDetailEntry) -> {
-                        symbolToTopOfBookMap.forEach((symbol, topofBookEntry) -> {
-                            TopOfBookNotificationMessage notfication = new TopOfBookNotificationMessage(
-                                    symbol,
-                                    topofBookEntry.getBidPrice(),
-                                    topofBookEntry.getBidQuantity(),
-                                    topofBookEntry.getAskPrice(),
-                                    topofBookEntry.getAskQuantity()
-                            );
-                            try {
-                                udpCommunicator.send(
-                                        notfication.encode(),
-                                        playerDetailEntry.getSocketAddress().getAddress(),
-                                        playerDetailEntry.getSocketAddress().getPort()
+                    idToPlayerDetailMap.forEach((__, playerDetailEntry) ->
+                            symbolToTopOfBookMap.forEach((symbol, topofBookEntry) -> {
+                                TopOfBookNotificationMessage notfication = new TopOfBookNotificationMessage(
+                                        symbol,
+                                        topofBookEntry.getBidPrice(),
+                                        topofBookEntry.getBidQuantity(),
+                                        topofBookEntry.getAskPrice(),
+                                        topofBookEntry.getAskQuantity()
                                 );
-                                log.info(
-                                        "Sent TopOfBookNotificationMessage to player {}: {}",
-                                        playerDetailEntry.getId(),
-                                        playerDetailEntry.getName()
-                                );
-                            } catch (IOException e) {
-                                log.error("Failure in Gateway while broadcasting Top Of Book to {} -> {}", symbol, e.getMessage());
-                            }
-                        });
-                    });
+                                try {
+                                    udpCommunicator.send(
+                                            notfication.encode(),
+                                            playerDetailEntry.getSocketAddress().getAddress(),
+                                            playerDetailEntry.getSocketAddress().getPort()
+                                    );
+                                    LOG.info(
+                                            "Sent TopOfBookNotificationMessage to player %d (%s)",
+                                            playerDetailEntry.getId(),
+                                            playerDetailEntry.getName()
+                                    );
+                                } catch (IOException e) {
+                                    LOG.error("Failure in Gateway while broadcasting Top Of Book to %s -> %s",
+                                            symbol,
+                                            e.getMessage()
+                                    );
+                                }
+                            }));
                 } catch (InterruptedException e) {
-                    log.error("Top of Book broadcast interrupted -> {}", e.getMessage());
+                    LOG.error("Top of Book broadcast interrupted -> %s", e.getMessage());
                 }
             }
         }).start();
+        LOG.info("Initialized TopOfBookBroadcast worker");
     }
 
-    private void initRegisterMatchingEngineListener() throws IOException {
+    private void initMatchingEngineMessageListeners() throws IOException {
         ServerSocket serverSocket = new ServerSocket(PORT);
         new Thread(() -> {
             while (true) {
@@ -126,9 +134,11 @@ public class Gateway {
                 try {
                     tcpCommunicator = new TcpCommunicator(serverSocket.accept());
                 } catch (IOException e) {
-                    log.error("Failure in Gateway RegisterMatchingEngine listener while awaiting connection -> {}", e.getMessage());
+                    LOG.error("Failure in Gateway RegisterMatchingEngineMessage listener while awaiting connection -> %s", e.getMessage());
                     continue;
                 }
+                LOG.info("Connection from %s", serverSocket.getInetAddress().getHostAddress());
+
                 EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(tcpCommunicator, Message::decode);
                 envelopeDispatcher.registerForDispatch(
                         RegisterMatchingEngineMessage.class,
@@ -136,26 +146,49 @@ public class Gateway {
                             try {
                                 registerMatchingEngine(env, tcpCommunicator);
                             } catch (IOException e) {
-                                log.error("Failure while attempting to register Matching Engine -> {}", e.getMessage());
+                                LOG.error("Failure while attempting to register Matching Engine %s -> %s",
+                                        serverSocket.getInetAddress().getHostAddress(),
+                                        e.getMessage()
+                                );
                             }
                         });
-                log.info("Registered handler for RegisterMatchingEngineMessage");
+                LOG.info("Registered RegisterMatchingEngineMessage handler for %s",
+                        serverSocket.getInetAddress().getHostAddress()
+                );
+
                 envelopeDispatcher.registerForDispatch(TopOfBookResponseMessage.class, this::updateTopOfBook);
-                log.info("Registered handler for TopOfBookResponseMessage");
+                LOG.info("Registered TopOfBookResponseMessage handler for %s",
+                        serverSocket.getInetAddress().getHostAddress()
+                );
+
+                envelopeDispatcher.registerForDispatch(OrderConfirmationMessage.class, this::forwardOrderConfirmation);
+                LOG.info("Registered OrderConfirmationMessage handler for %s",
+                        serverSocket.getInetAddress().getHostAddress()
+                );
+
+                envelopeDispatcher.registerForDispatch(CancelConfirmationMessage.class, this::forwardCancelConfirmation);
+                LOG.info("Registered CancelConfirmationMessage handler for %s",
+                        serverSocket.getInetAddress().getHostAddress()
+                );
+
                 // TODO: registerForDispatch any other messages we need to listen for
 
                 new Thread(envelopeDispatcher).start();
             }
         }).start();
+        LOG.info("Initialized RegisterMatchingEngineMessage listener");
+        LOG.info("Initialized TopOfBookResponseMessage listener");
+        LOG.info("Initialized ForwardOrderConfirmationMessage listener");
+        LOG.info("Initialized ForwardCancelConfirmationMessage listener");
     }
 
     private void registerMatchingEngine(Envelope<RegisterMatchingEngineMessage> envelope, TcpCommunicator tcpCommunicator) throws IOException {
         this.symbolToMatchingEngineMap.put(envelope.getMessage().getSymbol(), tcpCommunicator);
-        log.info("Received RegisterMatchingEngineMessage from {}", envelope.getMessage().getSymbol());
+        LOG.info("Received RegisterMatchingEngineMessage from %s", envelope.getMessage().getSymbol());
         tcpCommunicator.send(new AckMessage().encode());
-        log.info("Sent AckMessage to {}", envelope.getMessage().getSymbol());
+        LOG.info("Sent AckMessage to %s", envelope.getMessage().getSymbol());
         tcpCommunicator.send(new TopOfBookRequestMessage().encode());
-        log.info("Sent TopOfBookRequestMessage to {}", envelope.getMessage().getSymbol());
+        LOG.info("Sent TopOfBookRequestMessage to %s", envelope.getMessage().getSymbol());
     }
 
     private void updateTopOfBook(Envelope<TopOfBookResponseMessage> envelope) {
@@ -170,15 +203,21 @@ public class Gateway {
                         msg.getAskQuantity()
                 )
         );
-        log.info("Received TopOfBookResponseMessage from {}", msg.getSymbol());
+        LOG.info("Received TopOfBookResponseMessage from %s", msg.getSymbol());
     }
 
-    private void initRegisterPlayerListener() {
-        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
-        envelopeDispatcher.registerForDispatch(RegisterPlayerMessage.class, this::registerPlayer);
+    private void initUdpDispatcherListeners() {
+        udpDispatcher.registerForDispatch(RegisterPlayerMessage.class, this::registerPlayer);
+        LOG.info("Initialized RegisterPlayerMessage listener");
+
+        udpDispatcher.registerForDispatch(SubmitOrderMessage.class, this::forwardOrder);
+        LOG.info("Initialized SubmitOrderMessage listener");
+
+        udpDispatcher.registerForDispatch(CancelOrderMessage.class, this::forwardCancel);
+        LOG.info("Initialized CancelOrderMessage listener");
+
         // TODO: registerForDispatch any other messages we need to listen for
-        new Thread(envelopeDispatcher).start();
-        log.info("Registered handler for RegisterPlayerMessage");
+        new Thread(udpDispatcher).start();
     }
 
     private void registerPlayer(Envelope<RegisterPlayerMessage> envelope) {
@@ -188,7 +227,10 @@ public class Gateway {
         );
 
         this.idToPlayerDetailMap.put(newPlayerDetailEntry.getId(), newPlayerDetailEntry);
-        log.info("Received RegisterPlayerMessage from {}", newPlayerDetailEntry.getName());
+        LOG.info("Received RegisterPlayerMessage from %s - player name %s",
+                envelope.getSourceInetSocketAddress().getAddress().getHostAddress(),
+                newPlayerDetailEntry.getName()
+        );
 
         try {
             this.udpCommunicator.send(
@@ -199,10 +241,87 @@ public class Gateway {
                     newPlayerDetailEntry.getSocketAddress().getAddress(),
                     newPlayerDetailEntry.getSocketAddress().getPort()
             );
-            log.info("Sent PlayerRegisteredMessage to {} -- assigned playerId {}", newPlayerDetailEntry.getName(), newPlayerDetailEntry.getId());
+            LOG.info("Sent PlayerRegisteredMessage to %s and assigned playerId %d",
+                    envelope.getSourceInetSocketAddress().getAddress().getHostAddress(),
+                    newPlayerDetailEntry.getId()
+            );
         } catch (IOException e) {
-            log.error("Failure in Gateway::registerPlayer -> {}", e.getMessage());
+            LOG.error("Failure in Gateway::registerPlayer -> %s", e.getMessage());
         }
     }
 
+    private void forwardOrder(Envelope<SubmitOrderMessage> envelope) {
+        ForwardOrderMessage forwardOrderMessage = new ForwardOrderMessage(envelope.getMessage());
+        TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardOrderMessage.getSymbol());
+
+        try {
+            matchingEngineComm.send(forwardOrderMessage.encode());
+        } catch (IOException e) {
+            String player = idToPlayerDetailMap.get(forwardOrderMessage.getPlayerId()).getName();
+            String symbol = forwardOrderMessage.getSymbol();
+            String buy_sell = forwardOrderMessage.getOrderType().name();
+            short qty = forwardOrderMessage.getQuantity();
+            LOG.error("Failed to send ForwardOrderMessage. Order was placed by %s to %s %d shares of %s ->",
+                    player,
+                    buy_sell,
+                    qty,
+                    symbol,
+                    e.getMessage()
+            );
+        }
+    }
+
+    private void forwardOrderConfirmation(Envelope<OrderConfirmationMessage> envelope) {
+        ForwardOrderConfirmationMessage forwardOrderConfirmationMessage = new ForwardOrderConfirmationMessage(envelope.getMessage());
+        PlayerDetailEntry player = idToPlayerDetailMap.get(envelope.getMessage().getPlayerId());
+        InetAddress playerAddress = player.getSocketAddress().getAddress();
+        int playerPort = player.getSocketAddress().getPort();
+
+        try {
+            udpCommunicator.send(forwardOrderConfirmationMessage.encode(), playerAddress, playerPort);
+        } catch (IOException e) {
+            String symbol = forwardOrderConfirmationMessage.getSymbol();
+            LOG.error("Failed to send ForwardOrderConfirmationMessage. OrderConfirmationMessage came from %s bound for %s",
+                    symbol,
+                    player.getName()
+            );
+        }
+    }
+
+    private void forwardCancel(Envelope<CancelOrderMessage> envelope) {
+        ForwardCancelMessage forwardCancelMessage = new ForwardCancelMessage(envelope.getMessage());
+        TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardCancelMessage.getSymbol());
+
+        try {
+            matchingEngineComm.send(forwardCancelMessage.encode());
+        } catch (IOException e) {
+            String player = idToPlayerDetailMap.get(forwardCancelMessage.getPlayerId()).getName();
+            String symbol = forwardCancelMessage.getSymbol();
+            short orderID = forwardCancelMessage.getOrderId();
+            LOG.error("Failed to send ForwardCancelMessage. Cancel requested by %s for order %d at %s -> %s",
+                    player,
+                    orderID,
+                    symbol,
+                    e.getMessage()
+            );
+
+        }
+    }
+
+    private void forwardCancelConfirmation(Envelope<CancelConfirmationMessage> envelope) {
+        ForwardCancelConfirmationMessage forwardCancelConfirmationMessage = new ForwardCancelConfirmationMessage(envelope.getMessage());
+        PlayerDetailEntry player = idToPlayerDetailMap.get(envelope.getMessage().getPlayerId());
+        InetAddress playerAddress = player.getSocketAddress().getAddress();
+        int playerPort = player.getSocketAddress().getPort();
+
+        try {
+            udpCommunicator.send(forwardCancelConfirmationMessage.encode(), playerAddress, playerPort);
+        } catch (IOException e) {
+            String symbol = forwardCancelConfirmationMessage.getSymbol();
+            LOG.error("Failed to send ForwardCancelConfirmationMessage. CancelConfirmationMessage came from %s bound for %s",
+                    symbol,
+                    player.getName()
+            );
+        }
+    }
 }

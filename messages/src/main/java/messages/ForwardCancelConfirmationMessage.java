@@ -16,6 +16,13 @@ public class ForwardCancelConfirmationMessage extends Message {
         this.symbol = symbol;
     }
 
+    public ForwardCancelConfirmationMessage(CancelConfirmationMessage cancelConfirmationMessage) {
+        super(MessageType.FWD_CANCEL_CONF);
+        this.orderId = cancelConfirmationMessage.getOrderId();
+        this.cancelledQty = cancelConfirmationMessage.getCancelledQty();
+        this.symbol = cancelConfirmationMessage.getSymbol();
+    }
+
     public static ForwardCancelConfirmationMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 

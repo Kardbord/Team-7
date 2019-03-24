@@ -12,62 +12,65 @@ public class ForwardOrderConfirmationMessageTest {
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_ORDER_CONF;
         short expectedOrderId = 1;
-        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
         short expectedPrice = 4;
-        ForwardOrderConfirmationMessage.Status expectedStatus = ForwardOrderConfirmationMessage.Status.SUCCESS;
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeShort(expectedOrderId)
-                .encodeByte(expectedOrderType.toByte())
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
                 .encodeShort(expectedPrice)
-                .encodeByte(expectedStatus.toByte())
                 .toByteArray();
 
         byte[] actualMessageBytes =
-                new ForwardOrderConfirmationMessage(expectedOrderId, expectedOrderType, expectedSymbol, expectedExecutedQty,
-                        expectedRestingQty, expectedPrice, expectedStatus).encode();
+                new ForwardOrderConfirmationMessage(expectedOrderId, expectedSymbol, expectedExecutedQty,
+                        expectedRestingQty, expectedPrice).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
+
+        actualMessageBytes = new ForwardOrderConfirmationMessage(
+                new OrderConfirmationMessage(
+                        (short) 0,
+                        expectedOrderId,
+                        expectedExecutedQty,
+                        expectedRestingQty,
+                        expectedPrice,
+                        expectedSymbol
+                )
+        ).encode();
+        assertArrayEquals(expectedMessageBytes, actualMessageBytes);
+
     }
 
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_ORDER_CONF;
         short expectedOrderId = 1;
-        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
         short expectedPrice = 4;
-        ForwardOrderConfirmationMessage.Status expectedStatus = ForwardOrderConfirmationMessage.Status.SUCCESS;
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeShort(expectedOrderId)
-                .encodeByte(expectedOrderType.toByte())
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
                 .encodeShort(expectedPrice)
-                .encodeByte(expectedStatus.toByte())
                 .toByteArray();
 
         ForwardOrderConfirmationMessage victim = ForwardOrderConfirmationMessage.decode(messageBytes);
 
         assertEquals(expectedMessageType, victim.getMessageType());
         assertEquals(expectedOrderId, victim.getOrderId());
-        assertEquals(expectedOrderType, victim.getOrderType());
         assertEquals(expectedSymbol, victim.getSymbol());
         assertEquals(expectedExecutedQty, victim.getExecutedQty());
         assertEquals(expectedRestingQty, victim.getRestingQty());
         assertEquals(expectedPrice, victim.getPrice());
-        assertEquals(expectedStatus, victim.getStatus());
     }
 }
