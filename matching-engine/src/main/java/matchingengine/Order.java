@@ -7,9 +7,9 @@ public class Order implements Comparable<Order> {
     private short playerId;
     private SubmitOrderMessage.OrderType orderType;
     private short quantity;
-    private short price;
+    private int price;
     private String symbol;
-    public Order(short playerId, SubmitOrderMessage.OrderType orderType, short quantity, short price,
+    public Order(short playerId, SubmitOrderMessage.OrderType orderType, short quantity, int price,
                       String symbol,short orderID){
         this.playerId=playerId;
         this.orderType=orderType;
@@ -55,7 +55,7 @@ public class Order implements Comparable<Order> {
         this.quantity = quantity;
     }
 
-    public short getPrice() {
+    public int getPrice() {
         return price;
     }
 

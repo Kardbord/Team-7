@@ -11,9 +11,9 @@ import java.util.Vector;
 
 public class MatchingEngine {
     String symbol;
-    short bidPrice;
+    int bidPrice;
     short bidQuantity;
-    short askPrice;
+    int askPrice;
     short askQuantity;
     short orderIdCounter;
     private final static int PORT = 2000;
@@ -26,7 +26,7 @@ public class MatchingEngine {
     private Vector<Order> buyers = new Vector<>();
     private Vector<Order> sellers = new Vector<>();
 
-    public MatchingEngine(String symbol, short bidPrice){
+    public MatchingEngine(String symbol, int bidPrice){
         this.symbol=symbol;
         this.bidPrice=bidPrice;
         orderIdCounter=0;
@@ -104,7 +104,7 @@ public class MatchingEngine {
         short orderPlayerId=forwardOrderMessage.getPlayerId();
         SubmitOrderMessage.OrderType orderOrderType=forwardOrderMessage.getOrderType();
         short orderQuantity= forwardOrderMessage.getQuantity();
-        short orderPrice=forwardOrderMessage.getPrice();
+        int orderPrice=forwardOrderMessage.getPrice();
         String orderSymbol=forwardOrderMessage.getSymbol();
         orderIdCounter++;
         short executedQty=0;

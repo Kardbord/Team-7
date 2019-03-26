@@ -15,7 +15,7 @@ public class SubmitOrderMessageTest {
         short expectedPlayerId = 12;
         SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         short expectedQuantity = 42;
-        short expectedPrice = 1200;
+        int expectedPrice = 1200;
         String expectedSymbol = "NVDA";
 
         byte[] expectedMessageBytes = new Message.Encoder()
@@ -23,7 +23,7 @@ public class SubmitOrderMessageTest {
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 
@@ -44,7 +44,7 @@ public class SubmitOrderMessageTest {
         short expectedPlayerId = 12;
         SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         short expectedQuantity = 42;
-        short expectedPrice = 1200;
+        int expectedPrice = 1200;
         String expectedSymbol = "NVDA";
 
         byte[] messageBytes = new Message.Encoder()
@@ -52,7 +52,7 @@ public class SubmitOrderMessageTest {
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 

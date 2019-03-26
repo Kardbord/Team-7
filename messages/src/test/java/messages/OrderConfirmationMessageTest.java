@@ -16,7 +16,7 @@ public class OrderConfirmationMessageTest {
         short expectedOrderId = 3;
         short expectedExecutedQty = 4;
         short expectedRestingQty = 5;
-        short expectedPrice = 6;
+        int expectedPrice = 6;
         String expectedSymbol = "NVDA";
 
         byte[] expectedMessageBytes = new Message.Encoder()
@@ -25,7 +25,7 @@ public class OrderConfirmationMessageTest {
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 
@@ -43,7 +43,7 @@ public class OrderConfirmationMessageTest {
         short expectedOrderId = 3;
         short expectedExecutedQty = 4;
         short expectedRestingQty = 5;
-        short expectedPrice = 6;
+        int expectedPrice = 6;
         String expectedSymbol = "NVDA";
 
         byte[] messageBytes = new Message.Encoder()
@@ -52,7 +52,7 @@ public class OrderConfirmationMessageTest {
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 

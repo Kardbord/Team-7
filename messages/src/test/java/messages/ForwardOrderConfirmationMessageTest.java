@@ -15,7 +15,7 @@ public class ForwardOrderConfirmationMessageTest {
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
-        short expectedPrice = 4;
+        int expectedPrice = 4;
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -23,7 +23,7 @@ public class ForwardOrderConfirmationMessageTest {
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .toByteArray();
 
         byte[] actualMessageBytes =
@@ -53,7 +53,7 @@ public class ForwardOrderConfirmationMessageTest {
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
-        short expectedPrice = 4;
+        int expectedPrice = 4;
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -61,7 +61,7 @@ public class ForwardOrderConfirmationMessageTest {
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .toByteArray();
 
         ForwardOrderConfirmationMessage victim = ForwardOrderConfirmationMessage.decode(messageBytes);

@@ -17,7 +17,7 @@ public class ForwardOrderMessageTest {
         short expectedPlayerId = 12;
         OrderType expectedOrderType = OrderType.BUY;
         short expectedQuantity = 42;
-        short expectedPrice = 1200;
+        int expectedPrice = 1200;
         String expectedSymbol = "NVDA";
 
         byte[] expectedMessageBytes = new Message.Encoder()
@@ -25,7 +25,7 @@ public class ForwardOrderMessageTest {
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 
@@ -46,7 +46,7 @@ public class ForwardOrderMessageTest {
         short expectedPlayerId = 12;
         OrderType expectedOrderType = OrderType.BUY;
         short expectedQuantity = 42;
-        short expectedPrice = 1200;
+        int expectedPrice = 1200;
         String expectedSymbol = "NVDA";
 
         byte[] messageBytes = new Message.Encoder()
@@ -54,7 +54,7 @@ public class ForwardOrderMessageTest {
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
-                .encodeShort(expectedPrice)
+                .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
                 .toByteArray();
 

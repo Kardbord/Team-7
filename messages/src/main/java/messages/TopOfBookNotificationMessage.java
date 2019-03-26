@@ -6,12 +6,12 @@ import java.util.Objects;
 public class TopOfBookNotificationMessage extends Message {
 
     private String symbol;
-    private short bidPrice;
+    private int bidPrice;
     private short bidQuantity;
-    private short askPrice;
+    private int askPrice;
     private short askQuantity;
 
-    public TopOfBookNotificationMessage(String symbol, short bidPrice, short bidQuantity, short askPrice, short askQuantity) {
+    public TopOfBookNotificationMessage(String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
         super(MessageType.TOP_OF_BOOK_NOTIFICATION);
         this.symbol = symbol;
         this.bidPrice = bidPrice;
@@ -25,9 +25,9 @@ public class TopOfBookNotificationMessage extends Message {
         return new Encoder()
                 .encodeMessageType(messageType)
                 .encodeString(symbol)
-                .encodeShort(bidPrice)
+                .encodeInt(bidPrice)
                 .encodeShort(bidQuantity)
-                .encodeShort(askPrice)
+                .encodeInt(askPrice)
                 .encodeShort(askQuantity)
                 .toByteArray();
     }
@@ -40,9 +40,9 @@ public class TopOfBookNotificationMessage extends Message {
         }
 
         String symbol = decoder.decodeString();
-        short bidPrice = decoder.decodeShort();
+        int bidPrice = decoder.decodeInt();
         short bidQuantity = decoder.decodeShort();
-        short askPrice = decoder.decodeShort();
+        int askPrice = decoder.decodeInt();
         short askQuantity = decoder.decodeShort();
 
         return new TopOfBookNotificationMessage(symbol, bidPrice, bidQuantity, askPrice, askQuantity);
@@ -52,7 +52,7 @@ public class TopOfBookNotificationMessage extends Message {
         return symbol;
     }
 
-    public short getBidPrice() {
+    public int getBidPrice() {
         return bidPrice;
     }
 
@@ -60,7 +60,7 @@ public class TopOfBookNotificationMessage extends Message {
         return bidQuantity;
     }
 
-    public short getAskPrice() {
+    public int getAskPrice() {
         return askPrice;
     }
 

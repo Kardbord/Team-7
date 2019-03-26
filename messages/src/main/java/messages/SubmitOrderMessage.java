@@ -8,10 +8,10 @@ public class SubmitOrderMessage extends Message {
     private short playerId;
     private OrderType orderType;
     private short quantity;
-    private short price;
+    private int price;
     private String symbol;
 
-    public SubmitOrderMessage(short playerId, OrderType orderType, short quantity, short price, String symbol) {
+    public SubmitOrderMessage(short playerId, OrderType orderType, short quantity, int price, String symbol) {
         super(MessageType.SUBMIT_ORDER);
         this.playerId = playerId;
         this.orderType = orderType;
@@ -64,7 +64,7 @@ public class SubmitOrderMessage extends Message {
         }
 
         short quantity = decoder.decodeShort();
-        short price = decoder.decodeShort();
+        int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
         return new SubmitOrderMessage(playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
@@ -77,7 +77,7 @@ public class SubmitOrderMessage extends Message {
                 .encodeShort(playerId)
                 .encodeByte(orderType.toByte())
                 .encodeShort(quantity)
-                .encodeShort(price)
+                .encodeInt(price)
                 .encodeString(symbol)
                 .toByteArray();
     }
@@ -90,7 +90,7 @@ public class SubmitOrderMessage extends Message {
         return quantity;
     }
 
-    public short getPrice() {
+    public int getPrice() {
         return price;
     }
 

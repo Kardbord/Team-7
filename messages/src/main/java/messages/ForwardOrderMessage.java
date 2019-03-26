@@ -10,7 +10,7 @@ public class ForwardOrderMessage extends Message {
     private short playerId;
     private OrderType orderType;
     private short quantity;
-    private short price;
+    private int price;
     private String symbol;
 
     @Override
@@ -42,7 +42,7 @@ public class ForwardOrderMessage extends Message {
         return Objects.hash(super.hashCode(), playerId, orderType, quantity, price, symbol);
     }
 
-    public ForwardOrderMessage(short playerId, OrderType orderType, short quantity, short price, String symbol) {
+    public ForwardOrderMessage(short playerId, OrderType orderType, short quantity, int price, String symbol) {
         super(MessageType.FORWARD_ORDER);
         this.playerId = playerId;
         this.orderType = orderType;
@@ -75,7 +75,7 @@ public class ForwardOrderMessage extends Message {
         }
 
         short quantity = decoder.decodeShort();
-        short price = decoder.decodeShort();
+        int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
         return new ForwardOrderMessage(playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
@@ -88,7 +88,7 @@ public class ForwardOrderMessage extends Message {
                 .encodeShort(playerId)
                 .encodeByte(orderType.toByte())
                 .encodeShort(quantity)
-                .encodeShort(price)
+                .encodeInt(price)
                 .encodeString(symbol)
                 .toByteArray();
     }
@@ -101,7 +101,7 @@ public class ForwardOrderMessage extends Message {
         return quantity;
     }
 
-    public short getPrice() {
+    public int getPrice() {
         return price;
     }
 

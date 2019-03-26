@@ -9,11 +9,11 @@ public class OrderConfirmationMessage extends Message {
     private short orderId;
     private short executedQty;
     private short restingQty;
-    private short price;
+    private int price;
     private String symbol;
 
     public OrderConfirmationMessage(short playerId, short orderId,
-                                    short executedQty, short restingQty, short price, String symbol) {
+                                    short executedQty, short restingQty, int price, String symbol) {
         super(MessageType.ORDER_CONFIRMATION);
         this.playerId=playerId;
         this.orderId = orderId;
@@ -65,7 +65,7 @@ public class OrderConfirmationMessage extends Message {
         short orderId = decoder.decodeShort();
         short executedQty = decoder.decodeShort();
         short restingQty = decoder.decodeShort();
-        short price = decoder.decodeShort();
+        int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
         return new OrderConfirmationMessage(playerId, orderId, executedQty,restingQty, price, symbol);
@@ -79,7 +79,7 @@ public class OrderConfirmationMessage extends Message {
                 .encodeShort(orderId)
                 .encodeShort(executedQty)
                 .encodeShort(restingQty)
-                .encodeShort(price)
+                .encodeInt(price)
                 .encodeString(symbol)
                 .toByteArray();
     }
@@ -100,7 +100,7 @@ public class OrderConfirmationMessage extends Message {
         return restingQty;
     }
 
-    public short getPrice() {
+    public int getPrice() {
         return price;
     }
 

@@ -9,9 +9,9 @@ public class ForwardOrderConfirmationMessage extends Message {
     private String symbol;
     private short executedQty;
     private short restingQty;
-    private short price;
+    private int price;
 
-    public ForwardOrderConfirmationMessage(short orderId, String symbol, short executedQty, short restingQty, short price) {
+    public ForwardOrderConfirmationMessage(short orderId, String symbol, short executedQty, short restingQty, int price) {
         super(MessageType.FWD_ORDER_CONF);
         this.orderId = orderId;
         this.symbol = symbol;
@@ -70,7 +70,7 @@ public class ForwardOrderConfirmationMessage extends Message {
         String symbol = decoder.decodeString();
         short executedQty = decoder.decodeShort();
         short restingQty = decoder.decodeShort();
-        short price = decoder.decodeShort();
+        int price = decoder.decodeInt();
 
         return new ForwardOrderConfirmationMessage(orderId, symbol, executedQty, restingQty, price);
     }
@@ -83,7 +83,7 @@ public class ForwardOrderConfirmationMessage extends Message {
                 .encodeString(symbol)
                 .encodeShort(executedQty)
                 .encodeShort(restingQty)
-                .encodeShort(price)
+                .encodeInt(price)
                 .toByteArray();
     }
 
@@ -103,7 +103,7 @@ public class ForwardOrderConfirmationMessage extends Message {
         return restingQty;
     }
 
-    public short getPrice() {
+    public int getPrice() {
         return price;
     }
 

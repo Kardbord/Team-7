@@ -12,17 +12,17 @@ public class TopOfBookResponseMessageTest {
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.TOP_OF_BOOK_RESPONSE;
         String expectedSymbol = "NVDA";
-        short expectedBidPrice = 500;
+        int expectedBidPrice = 500;
         short expectedBidQty = 5;
-        short expectedAskPrice = 550;
+        int expectedAskPrice = 550;
         short expectedAskQty = 3;
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeString(expectedSymbol)
-                .encodeShort(expectedBidPrice)
+                .encodeInt(expectedBidPrice)
                 .encodeShort(expectedBidQty)
-                .encodeShort(expectedAskPrice)
+                .encodeInt(expectedAskPrice)
                 .encodeShort(expectedAskQty)
                 .toByteArray();
 
@@ -40,17 +40,17 @@ public class TopOfBookResponseMessageTest {
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.TOP_OF_BOOK_RESPONSE;
         String expectedSymbol = "NVDA";
-        short expectedBidPrice = 500;
+        int expectedBidPrice = 500;
         short expectedBidQty = 5;
-        short expectedAskPrice = 550;
+        int expectedAskPrice = 550;
         short expectedAskQty = 3;
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeString(expectedSymbol)
-                .encodeShort(expectedBidPrice)
+                .encodeInt(expectedBidPrice)
                 .encodeShort(expectedBidQty)
-                .encodeShort(expectedAskPrice)
+                .encodeInt(expectedAskPrice)
                 .encodeShort(expectedAskQty)
                 .toByteArray();
 
