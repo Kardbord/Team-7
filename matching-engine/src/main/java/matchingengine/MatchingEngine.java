@@ -93,7 +93,7 @@ public class MatchingEngine {
         TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(this.symbol,this.bidPrice,
                 this.bidQuantity,this.askPrice,this.askQuantity);
         try {
-            tcpCommunicator.send(topOfBookRequestMessage.encode());
+            tcpCommunicator.send(topOfBookResponseMessage.encode());
         } catch (IOException e) {
             e.printStackTrace();
         }
