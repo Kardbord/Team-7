@@ -63,7 +63,7 @@ public class ClientConsole {
             player = new Player(getUserInput("Name: "));
         }
         else {
-            player = new Player(getUserInput("Name: "), args[1]);
+            player = new Player(getUserInput("Name: "), args[0]);
         }
 
     }

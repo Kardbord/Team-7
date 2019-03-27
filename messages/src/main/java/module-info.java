@@ -1,0 +1,3 @@
+module messages {
+    exports messages;
+}

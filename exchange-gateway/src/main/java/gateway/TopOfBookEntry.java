@@ -1,6 +1,6 @@
 package gateway;
 
-class TopOfBookEntry {
+public class TopOfBookEntry {
     private String symbol;
 
     private int bidPrice;
@@ -9,7 +9,7 @@ class TopOfBookEntry {
     private int askPrice;
     private short askQuantity;
 
-    TopOfBookEntry(String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
+    public TopOfBookEntry(String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
         this.symbol = symbol;
         this.bidPrice = bidPrice;
         this.bidQuantity = bidQuantity;
@@ -25,7 +25,7 @@ class TopOfBookEntry {
         this.symbol = symbol;
     }
 
-    int getBidPrice() {
+    public int getBidPrice() {
         return bidPrice;
     }
 
@@ -33,7 +33,7 @@ class TopOfBookEntry {
         this.bidPrice = bidPrice;
     }
 
-    short getBidQuantity() {
+    public short getBidQuantity() {
         return bidQuantity;
     }
 
@@ -41,7 +41,7 @@ class TopOfBookEntry {
         this.bidQuantity = bidQuantity;
     }
 
-    int getAskPrice() {
+    public int getAskPrice() {
         return askPrice;
     }
 
@@ -49,7 +49,7 @@ class TopOfBookEntry {
         this.askPrice = askPrice;
     }
 
-    short getAskQuantity() {
+    public short getAskQuantity() {
         return askQuantity;
     }
 
