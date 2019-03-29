@@ -1,30 +1,34 @@
 package player;
 
-import communicators.TcpCommunicator;
-import gateway.TopOfBookEntry;
-
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+
+import gateway.TopOfBookEntry;
 import communicators.UdpCommunicator;
 import communicators.Envelope;
 import dispatcher.EnvelopeDispatcher;
 import messages.*;
+import messages.SubmitOrderMessage.OrderType;
+import portfolio.PortfolioEntry;
 import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.util.Enumeration;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 
 public class Player {
 
     private static Logger log = LogManager.getFormatterLogger(Player.class.getName());
 
     private UdpCommunicator udpCommunicator;
-    private TcpCommunicator tcpCommunicator;
     private InetSocketAddress serverSocketAddress;
-    private ConcurrentHashMap<String, TopOfBookEntry> topOfBookMap;
+    private ObservableList<String> symbolList;
+    private ObservableMap<String, TopOfBookEntry> topOfBookMap;
+    private ObservableMap<String, PortfolioEntry> portfolio;
 
     private String name;
     private int playerId;
@@ -35,7 +39,7 @@ public class Player {
         this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(),Utils.PORT);
         this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
         registerPlayer();
-        initPlayerRegisteredListener();
+        initMessageListeners();
 
     }
 
@@ -49,10 +53,25 @@ public class Player {
         this.name = name;
         this.serverSocketAddress = new InetSocketAddress(serverAddress,Utils.PORT);
         this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
-        this.topOfBookMap = new ConcurrentHashMap<>();
+        this.topOfBookMap = FXCollections.observableHashMap();
+        this.portfolio = FXCollections.observableHashMap();
+        this.symbolList = FXCollections.observableArrayList();
         registerPlayer();
-        initPlayerRegisteredListener();
-        initTopOfBookListener();
+        initMessageListeners();
+    }
+
+    /**
+     * Set up the listener to receive a Player Registered message
+     */
+    private void initMessageListeners() {
+        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
+        envelopeDispatcher.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
+        envelopeDispatcher.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
+        envelopeDispatcher.registerForDispatch(OrderConfirmationMessage.class, this::updatePortfolio);
+        new Thread(envelopeDispatcher).start();
+        log.info("Initialized PlayerRegisteredListener");
+        log.info("Initialized TopOfBookNotificationListener");
+
     }
 
     /**
@@ -73,15 +92,15 @@ public class Player {
 
     }
 
-    /**
-     * Set up the listener to receive a Player Registered message
-     */
-    private void initPlayerRegisteredListener() {
-        log.info("Starting PlayerRegisteredListener");
-        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
-        envelopeDispatcher.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
-        new Thread(envelopeDispatcher).start();
-
+    public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) {
+        log.info("Player %d submitted a %s order for %d shares of %s at %d per share", playerId, orderType.name(), quantity, symbol, price);
+        try {
+            this.udpCommunicator.send(new SubmitOrderMessage(playerId, orderType, quantity, price, symbol).encode(),
+                    this.serverSocketAddress.getAddress(),
+                    this.serverSocketAddress.getPort());
+        } catch (IOException e) {
+            log.error("Failed to send order: %s", e.getMessage());
+        }
     }
 
     /**
@@ -92,36 +111,36 @@ public class Player {
         log.info("Received Registered Player Message");
         this.playerId = env.getMessage().getPlayerId();
         this.cash = env.getMessage().getInitialCash();
-        log.info("PlayerID: " + this.playerId);
-        log.info("Cash: " + this.cash);
+        log.info("PlayerID: %d", this.playerId);
+        log.info("Cash: %d", this.cash);
     }
 
-    private void initTopOfBookListener() {
-        log.info("Starting TopOfBookListener");
-        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
-        envelopeDispatcher.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
-        new Thread(envelopeDispatcher).start();
+    private void updatePortfolio(Envelope<OrderConfirmationMessage> env) {
+        log.info("Order Confirmation received");
+        OrderConfirmationMessage msg = env.getMessage();
+        if (!portfolio.containsKey(msg.getSymbol())) {
+            portfolio.put(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), msg.getExecutedQty(), msg.getPrice()));
+        } else {
+            PortfolioEntry entry = portfolio.get(msg.getSymbol());
+            entry.updatePositions(msg.getExecutedQty());
+            entry.updateEquity(msg.getPrice());
+        }
     }
 
     private void updateTopOfBook(Envelope<TopOfBookNotificationMessage> env) {
-        log.info("Received TopOfBookMessage");
+//        log.info("Received TopOfBookMessage");
         TopOfBookNotificationMessage msg = env.getMessage();
-        topOfBookMap.put(
-                msg.getSymbol(),
-                new TopOfBookEntry(
-                        msg.getSymbol(),
-                        msg.getBidPrice(),
-                        msg.getBidQuantity(),
-                        msg.getAskPrice(),
-                        msg.getAskQuantity()
-                )
-        );
-    }
-
-    public void submitOrder(short playerId, short orderType, short quantity, int price, String symbol) {
-        log.info("Player %d submitted a %d order for %d shares of %s at %d per share", playerId, orderType, quantity, symbol, price);
-
-        cash -= price;
+        String symbol = msg.getSymbol();
+        topOfBookMap.put(msg.getSymbol(), new TopOfBookEntry(
+                symbol,
+                msg.getBidPrice(),
+                msg.getBidQuantity(),
+                msg.getAskPrice(),
+                msg.getAskQuantity()
+        ));
+        if (!symbolList.contains(msg.getSymbol())) {
+            symbolList.add(msg.getSymbol());
+        }
     }
 
     public String getName() {
@@ -148,15 +167,16 @@ public class Player {
         return serverSocketAddress;
     }
 
-    public Enumeration<String> getTopOfBookSymbols() {
-        return topOfBookMap.keys();
+
+    public ObservableMap<String, TopOfBookEntry> getTopOfBookMap() {
+        return topOfBookMap;
     }
 
-    public TopOfBookEntry getTopOfBookEntry(String symbol) {
-        if (topOfBookMap.containsKey(symbol)) {
-            return topOfBookMap.get(symbol);
-        } else {
-            throw new NullPointerException();
-        }
+    public ObservableMap<String, PortfolioEntry> getPortfolioMap() {
+        return portfolio;
+    }
+
+    public ObservableList<String> getSymbolList() {
+        return symbolList;
     }
 }

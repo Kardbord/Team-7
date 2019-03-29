@@ -67,7 +67,7 @@ public class ClientApp extends Application {
             public void handle(ActionEvent actionEvent) {
                 if (userTextField.getText() != null && !userTextField.getText().isEmpty()) {
                     try {
-                        controller.setPlayer((userTextField.getText()), serverField.getText());
+                        controller.initPlayer((userTextField.getText()), serverField.getText());
                         primaryStage.setScene(showPortfolio());
                     } catch (IOException e) {
                         e.printStackTrace();

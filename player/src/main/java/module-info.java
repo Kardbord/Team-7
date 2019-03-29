@@ -10,4 +10,5 @@ module player {
     opens userInterface to javafx.fxml;
     exports player;
     exports userInterface;
+    exports portfolio;
 }

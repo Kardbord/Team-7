@@ -56,4 +56,9 @@ public class TopOfBookEntry {
     void setAskQuantity(short askQuantity) {
         this.askQuantity = askQuantity;
     }
+
+    @Override
+    public String toString() {
+        return String.format( "Bid: $%d x %d\t Ask: $%d x %d", this.bidPrice, this.bidQuantity, this.askPrice, this.askQuantity);
+    }
 }

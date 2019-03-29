@@ -4,12 +4,18 @@ package matchingengine;
 import dispatcher.EnvelopeDispatcher;
 import messages.*;
 import communicators.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.net.*;
 import java.util.Collections;
 import java.util.Vector;
 
 public class MatchingEngine {
+
+    private static final Logger LOG = LogManager.getFormatterLogger(MatchingEngine.class.getName());
+
     String symbol;
     int bidPrice;
     short bidQuantity;
@@ -26,9 +32,13 @@ public class MatchingEngine {
     private Vector<Order> buyers = new Vector<>();
     private Vector<Order> sellers = new Vector<>();
 
+    // This has been updated for ease of testing.
     public MatchingEngine(String symbol, int bidPrice){
         this.symbol=symbol;
         this.bidPrice=bidPrice;
+        this.bidQuantity = 10;
+        this.askPrice = 55;
+        this.askQuantity = 22;
         orderIdCounter=0;
         register();
         initMessageListener();
@@ -101,6 +111,12 @@ public class MatchingEngine {
 
     private void handleOrder(Envelope<ForwardOrderMessage> envelope) {
         ForwardOrderMessage forwardOrderMessage = envelope.getMessage();
+        LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
+                forwardOrderMessage.getOrderType().name(),
+                forwardOrderMessage.getQuantity(),
+                forwardOrderMessage.getSymbol(),
+                forwardOrderMessage.getPrice());
+
         short orderPlayerId=forwardOrderMessage.getPlayerId();
         SubmitOrderMessage.OrderType orderOrderType=forwardOrderMessage.getOrderType();
         short orderQuantity= forwardOrderMessage.getQuantity();
@@ -110,6 +126,7 @@ public class MatchingEngine {
         short executedQty=0;
         short remainingOrderQuantity=orderQuantity;
         boolean orderComplete=false;
+
         if(orderOrderType == SubmitOrderMessage.OrderType.BUY){
             for(int i=0;i<sellers.size()&&!orderComplete;i++){
                 if(orderPrice>=sellers.get(i).getPrice()){
@@ -252,14 +269,8 @@ public class MatchingEngine {
         }
     }
 
-
-
-
-
-
-
     public static void main(String[] args) {
-        MatchingEngine matchingEngine=new MatchingEngine("GOOG",(short)45);
+        new MatchingEngine("GOOG",(short)45);
     }
 
 }

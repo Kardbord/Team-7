@@ -253,6 +253,11 @@ public class Gateway {
     private void forwardOrder(Envelope<SubmitOrderMessage> envelope) {
         ForwardOrderMessage forwardOrderMessage = new ForwardOrderMessage(envelope.getMessage());
         TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardOrderMessage.getSymbol());
+        LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
+                                                                                        forwardOrderMessage.getOrderType().name(),
+                                                                                        forwardOrderMessage.getQuantity(),
+                                                                                        forwardOrderMessage.getSymbol(),
+                                                                                        forwardOrderMessage.getPrice());
 
         try {
             matchingEngineComm.send(forwardOrderMessage.encode());
@@ -276,7 +281,7 @@ public class Gateway {
         PlayerDetailEntry player = idToPlayerDetailMap.get(envelope.getMessage().getPlayerId());
         InetAddress playerAddress = player.getSocketAddress().getAddress();
         int playerPort = player.getSocketAddress().getPort();
-
+        LOG.info("Forwarding Order Confirmation to Player %d", player.getId());
         try {
             udpCommunicator.send(forwardOrderConfirmationMessage.encode(), playerAddress, playerPort);
         } catch (IOException e) {
