@@ -67,7 +67,7 @@ public class Player {
         EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
         envelopeDispatcher.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
         envelopeDispatcher.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
-        envelopeDispatcher.registerForDispatch(OrderConfirmationMessage.class, this::updatePortfolio);
+        envelopeDispatcher.registerForDispatch(ForwardOrderConfirmationMessage.class, this::updatePortfolio);
         new Thread(envelopeDispatcher).start();
         log.info("Initialized PlayerRegisteredListener");
         log.info("Initialized TopOfBookNotificationListener");
@@ -115,9 +115,9 @@ public class Player {
         log.info("Cash: %d", this.cash);
     }
 
-    private void updatePortfolio(Envelope<OrderConfirmationMessage> env) {
+    private void updatePortfolio(Envelope<ForwardOrderConfirmationMessage> env) {
         log.info("Order Confirmation received");
-        OrderConfirmationMessage msg = env.getMessage();
+        ForwardOrderConfirmationMessage msg = env.getMessage();
         if (!portfolio.containsKey(msg.getSymbol())) {
             portfolio.put(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), msg.getExecutedQty(), msg.getPrice()));
         } else {
