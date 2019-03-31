@@ -12,6 +12,12 @@
         </dependency>
         <dependency>
             <groupId>team7</groupId>
+            <artifactId>exchange-gateway</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>team7</groupId>
             <artifactId>communication-subsytem</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>

@@ -4,43 +4,59 @@ package matchingengine;
 import dispatcher.EnvelopeDispatcher;
 import messages.*;
 import communicators.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.*;
 import java.net.*;
 import java.util.Collections;
 import java.util.Vector;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MatchingEngine {
-
-    private static final Logger LOG = LogManager.getFormatterLogger(MatchingEngine.class.getName());
-
     String symbol;
     int bidPrice;
+    int orignalBidPrice;
     short bidQuantity;
     int askPrice;
+    int originalAskPrice;
     short askQuantity;
     short orderIdCounter;
     private final static int PORT = 2000;
-
+    private static final Logger LOG = LogManager.getFormatterLogger(MatchingEngine.class.getName());
+    boolean ackMessageReceived=false;
+    public RestingBook restingBook=new RestingBook();
+    public OrderHandler orderHandler;
     //TODO figure what we need the IP to be
     //private final static String IP = "127.0.0.1";
-    private Socket socket;
-    private TcpCommunicator tcpCommunicator;
+    public Socket socket;
+    //made public for testing
+    public TcpCommunicator tcpCommunicator;
     //sellers from cheapest to most expensive, buyers most expensive to cheapest
-    private Vector<Order> buyers = new Vector<>();
-    private Vector<Order> sellers = new Vector<>();
 
-    // This has been updated for ease of testing.
-    public MatchingEngine(String symbol, int bidPrice){
+//todo probs axe this constructor
+    public MatchingEngine(String symbol, int bidPrice,int askPrice){
         this.symbol=symbol;
         this.bidPrice=bidPrice;
-        this.bidQuantity = 10;
-        this.askPrice = 55;
-        this.askQuantity = 22;
+        this.orignalBidPrice=bidPrice;
+        this.askPrice=askPrice;
+        this.originalAskPrice=askPrice;
+        this.askQuantity=0;
         orderIdCounter=0;
         register();
+        this.orderHandler=new OrderHandler(this.restingBook,symbol,tcpCommunicator);
+        initMessageListener();
+    }
+
+    public MatchingEngine(String symbol){
+        this.symbol=symbol;
+        this.bidPrice=0;
+        this.orignalBidPrice=0;
+        this.askPrice=0;
+        this.originalAskPrice=0;
+        this.askQuantity=0;
+        this.bidQuantity=0;
+        orderIdCounter=0;
+        register();
+        this.orderHandler=new OrderHandler(this.restingBook,symbol,tcpCommunicator);
         initMessageListener();
     }
 
@@ -53,9 +69,11 @@ public class MatchingEngine {
             socket=new Socket(address,PORT);
             tcpCommunicator=new TcpCommunicator(socket);
             tcpCommunicator.send(registerMatchingEngineMessage.encode());
-            //TODO have a timeout to make this is more reliable
-        }catch (Exception ex){
-            System.out.println(ex);
+            LOG.info("%s sent registerMatchingEngineMessage to Gateway",this.symbol);
+            //TODO wait for ack?
+        }catch (IOException e) {
+            LOG.error("Failure in %s constructor, couldn't send registerMatchingEngineMessage",
+                    symbol, e.getMessage());
         }
     }
 
@@ -63,214 +81,125 @@ public class MatchingEngine {
     public void initMessageListener(){
         EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(tcpCommunicator, Message::decode);
         envelopeDispatcher.registerForDispatch(TopOfBookRequestMessage.class, this::sendTopOfBook);
+        LOG.info("%s Initialized TopOfBookRequestMessage listener",this.symbol);
         envelopeDispatcher.registerForDispatch(ForwardOrderMessage.class, this::handleOrder);
-        envelopeDispatcher.registerForDispatch(CancelOrderMessage.class, this::cancelOrder);
+        LOG.info("%s Initialized ForwardOrderMessage listener",this.symbol);
+        envelopeDispatcher.registerForDispatch(ForwardCancelMessage.class, this::cancelOrder);
+        LOG.info("%s Initialized ForwardCancelMessage listener",this.symbol);
         new Thread(envelopeDispatcher).start();
     }
 
-    private void cancelOrder(Envelope<CancelOrderMessage> envelope) {
-        CancelOrderMessage cancelOrderMessage = envelope.getMessage();
+    private void cancelOrder(Envelope<ForwardCancelMessage> envelope) {
+        ForwardCancelMessage cancelOrderMessage = envelope.getMessage();
         short orderId=cancelOrderMessage.getOrderId();
         short playerId=cancelOrderMessage.getPlayerId();
         short cancelledQuantity=0;
+        LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ",
+                this.symbol, orderId,playerId);
         boolean done=false;
-        for(int i=0;i<sellers.size()&&done==false;i++){
-            if(sellers.get(i).getPlayerId()==playerId&&sellers.get(i).getOrderID()==orderId){
-                cancelledQuantity=sellers.get(i).getQuantity();
-                sellers.remove(i);
+        for(int i=0;i<restingBook.sellers.size()&&done==false;i++){
+            if(restingBook.sellers.get(i).getPlayerId()==playerId&&restingBook.sellers.get(i).getOrderID()==orderId){
+                cancelledQuantity=restingBook.sellers.get(i).getQuantity();
+                restingBook.sellers.remove(i);
                 done=true;
             }
         }
-        for(int i=0;i<buyers.size()&&done==false;i++){
-            if(buyers.get(i).getPlayerId()==playerId&&buyers.get(i).getOrderID()==orderId){
-                cancelledQuantity=buyers.get(i).getQuantity();
-                buyers.remove(i);
+        for(int i=0;i<restingBook.buyers.size()&&done==false;i++){
+            if(restingBook.buyers.get(i).getPlayerId()==playerId&&restingBook.buyers.get(i).getOrderID()==orderId){
+                cancelledQuantity=restingBook.buyers.get(i).getQuantity();
+                restingBook.buyers.remove(i);
                 done=true;
             }
         }
-        //TODO what message do we send if the order does not exist? or how do we format this message
         CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(playerId,
                 orderId,cancelledQuantity,this.symbol);
         try {
             tcpCommunicator.send(cancelConfirmationMessage.encode());
+            LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",
+                    symbol, e.getMessage());
         }
     }
 
     private void sendTopOfBook(Envelope<TopOfBookRequestMessage> envelope) {
+        //update top of book
+        if(restingBook.buyers.size()>0) {
+            this.bidPrice = restingBook.buyers.get(0).getPrice();
+        }
+        else{
+            this.bidPrice=this.orignalBidPrice;
+        }
+        if(restingBook.sellers.size()>0) {
+            this.askPrice = restingBook.sellers.get(0).getPrice();
+        }
+        else{
+            this.askPrice=originalAskPrice;
+        }
+        LOG.info("%s Received TopOfBookRequestMessage from Gateway",this.symbol);
         TopOfBookRequestMessage topOfBookRequestMessage = envelope.getMessage();
-        TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(this.symbol,this.bidPrice,
-                this.bidQuantity,this.askPrice,this.askQuantity);
+        TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(this.symbol,
+                this.bidPrice, this.bidQuantity,this.askPrice,this.askQuantity);
         try {
             tcpCommunicator.send(topOfBookResponseMessage.encode());
+            LOG.info("% sent topOfBookResponseMessage to Gateway",this.symbol);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Failure in %s while trying to send topOfBookResponseMessage to Gateway",
+                    symbol, e.getMessage());
         }
     }
 
-    private void handleOrder(Envelope<ForwardOrderMessage> envelope) {
-        ForwardOrderMessage forwardOrderMessage = envelope.getMessage();
-        LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
-                forwardOrderMessage.getOrderType().name(),
-                forwardOrderMessage.getQuantity(),
-                forwardOrderMessage.getSymbol(),
-                forwardOrderMessage.getPrice());
-
-        short orderPlayerId=forwardOrderMessage.getPlayerId();
-        SubmitOrderMessage.OrderType orderOrderType=forwardOrderMessage.getOrderType();
-        short orderQuantity= forwardOrderMessage.getQuantity();
-        int orderPrice=forwardOrderMessage.getPrice();
-        String orderSymbol=forwardOrderMessage.getSymbol();
-        orderIdCounter++;
-        short executedQty=0;
-        short remainingOrderQuantity=orderQuantity;
-        boolean orderComplete=false;
-
-        if(orderOrderType == SubmitOrderMessage.OrderType.BUY){
-            for(int i=0;i<sellers.size()&&!orderComplete;i++){
-                if(orderPrice>=sellers.get(i).getPrice()){
-                    if(sellers.get(i).getQuantity()==remainingOrderQuantity){
-                        orderComplete=true;
-                        OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
-                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),
-                                sellers.get(i).getQuantity(), (short)0,sellers.get(i).getPrice(),
-                                sellers.get(i).getSymbol()
-                        );
-                        //TODO should this orderprice be sellers(i) order price?
-                        OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
-                                orderPlayerId, orderIdCounter,orderQuantity,(short)0,orderPrice,
-                                orderSymbol);
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage1.encode());
-                            tcpCommunicator.send(orderConfirmationMessage2.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        sellers.remove(i);
-                        i--;
-                    }
-                    else if(sellers.get(i).getQuantity()<remainingOrderQuantity){
-                        OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
-                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),
-                                sellers.get(i).getQuantity(),(short)0,sellers.get(i).getPrice(),orderSymbol
-                        );
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        executedQty+=sellers.get(i).getQuantity();
-                        remainingOrderQuantity=(short)(remainingOrderQuantity-sellers.get(i).getQuantity());
-                        sellers.remove(i);
-                        i--;
-                    }
-                    else if(sellers.get(i).getQuantity()>remainingOrderQuantity){
-                        orderComplete=true;
-                        sellers.get(i).setQuantity((short)(sellers.get(i).getQuantity()-remainingOrderQuantity));
-                        OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
-                                orderPlayerId,orderIdCounter,orderQuantity,(short)0,orderPrice,orderSymbol
-                        );
-                        OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
-                                sellers.get(i).getPlayerId(),sellers.get(i).getOrderID(),remainingOrderQuantity,
-                                sellers.get(i).getQuantity(),sellers.get(i).getPrice(),orderSymbol
-                        );
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage1.encode());
-                            tcpCommunicator.send(orderConfirmationMessage2.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-            }
-            //if the order didn't finish, add it to the resting book
-            //TODO makers sure buyers resting book is ordered by price(greatest to least)
-            if(orderComplete==false){
-                Order order=new Order(orderPlayerId,orderOrderType,remainingOrderQuantity,orderPrice,
-                        orderSymbol,orderIdCounter);
-                buyers.add(order);
-                Collections.sort(buyers, Collections.reverseOrder());
-                OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
-                        orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
-                );
-            }
-
-        }
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        else if(orderOrderType == SubmitOrderMessage.OrderType.SELL){
-            for(int i=0;i<buyers.size()&&!orderComplete;i++){
-                if(orderPrice<=buyers.get(i).getPrice()){
-                    if(buyers.get(i).getQuantity()==remainingOrderQuantity){
-                        orderComplete=true;
-                        OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
-                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),
-                                buyers.get(i).getQuantity(), (short)0,buyers.get(i).getPrice(),
-                                buyers.get(i).getSymbol()
-                        );
-                        OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
-                                orderPlayerId, orderIdCounter,orderQuantity,(short)0,orderPrice,
-                                orderSymbol);
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage1.encode());
-                            tcpCommunicator.send(orderConfirmationMessage2.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        buyers.remove(i);
-                        i--;
-                    }
-                    else if(buyers.get(i).getQuantity()<remainingOrderQuantity){
-                        OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
-                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),
-                                buyers.get(i).getQuantity(),(short)0,buyers.get(i).getPrice(),orderSymbol
-                        );
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        executedQty+=buyers.get(i).getQuantity();
-                        remainingOrderQuantity=(short)(remainingOrderQuantity-buyers.get(i).getQuantity());
-                        buyers.remove(i);
-                        i--;
-                    }
-                    else if(buyers.get(i).getQuantity()>remainingOrderQuantity){
-                        orderComplete=true;
-                        buyers.get(i).setQuantity((short)(buyers.get(i).getQuantity()-remainingOrderQuantity));
-                        OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
-                                orderPlayerId,orderIdCounter,orderQuantity,(short)0,orderPrice,orderSymbol
-                        );
-                        OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
-                                buyers.get(i).getPlayerId(),buyers.get(i).getOrderID(),remainingOrderQuantity,
-                                buyers.get(i).getQuantity(),buyers.get(i).getPrice(),orderSymbol
-                        );
-                        try {
-                            tcpCommunicator.send(orderConfirmationMessage1.encode());
-                            tcpCommunicator.send(orderConfirmationMessage2.encode());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-            }
-            //if the order didn't finish, add it to the resting book
-            if(orderComplete==false){
-                Order order=new Order(orderPlayerId,orderOrderType,remainingOrderQuantity,orderPrice,
-                        orderSymbol,orderIdCounter);
-                sellers.add(order);
-                Collections.sort(sellers);
-                OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
-                        orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
-                );
-            }
-        }
+    private void handleOrder(Envelope<ForwardOrderMessage> envelope){
+        LOG.info("Received ForwardOrderMessage from Gateway for player ID %d",
+                envelope.getMessage().getPlayerId());
+        orderHandler.handleOrder(envelope.getMessage());
     }
+
+    //todo for testing, look into better way to do this one
+    public void cancelOrderTester(ForwardCancelMessage cancelOrderMessage){
+        short orderId=cancelOrderMessage.getOrderId();
+        short playerId=cancelOrderMessage.getPlayerId();
+        short cancelledQuantity=0;
+        LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ",
+                this.symbol, orderId,playerId);
+        boolean done=false;
+        for(int i=0;i<restingBook.sellers.size()&&done==false;i++){
+            if(restingBook.sellers.get(i).getPlayerId()==playerId&&restingBook.sellers.get(i).getOrderID()==orderId){
+                cancelledQuantity=restingBook.sellers.get(i).getQuantity();
+                restingBook.sellers.remove(i);
+                done=true;
+            }
+        }
+        for(int i=0;i<restingBook.buyers.size()&&done==false;i++){
+            if(restingBook.buyers.get(i).getPlayerId()==playerId&&restingBook.buyers.get(i).getOrderID()==orderId){
+                cancelledQuantity=restingBook.buyers.get(i).getQuantity();
+                restingBook.buyers.remove(i);
+                done=true;
+            }
+        }
+        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(playerId,
+                orderId,cancelledQuantity,this.symbol);
+        try {
+            tcpCommunicator.send(cancelConfirmationMessage.encode());
+            LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
+        } catch (IOException e) {
+            LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",
+                    symbol, e.getMessage());
+        }
+
+    }
+
+
+
+
+
+
+
+
+
 
     public static void main(String[] args) {
-        new MatchingEngine("GOOG",(short)45);
+        MatchingEngine matchingEngine=new MatchingEngine("GOOG");
     }
 
 }
