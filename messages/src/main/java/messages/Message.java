@@ -6,13 +6,20 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.Objects;
+import java.util.UUID;
 
 public abstract class Message {
 
     protected MessageType messageType;
+    protected UUID conversationId = UUID.randomUUID();
 
     protected Message(MessageType msgType) {
         messageType = msgType;
+    }
+
+    protected Message(MessageType msgType, UUID uuid) {
+        messageType = msgType;
+        conversationId = uuid;
     }
 
     public static Message decode(byte[] messageBytes) {
@@ -66,6 +73,10 @@ public abstract class Message {
         return messageType;
     }
 
+    public UUID getConversationId() {
+        return conversationId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -89,6 +100,10 @@ public abstract class Message {
     protected static class Encoder {
 
         private ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        public Encoder encodeUUID(UUID uuid) throws IOException {
+            return encodeString(uuid.toString());
+        }
 
         public Encoder encodeShort(short value) throws IOException {
             ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES);
@@ -145,6 +160,10 @@ public abstract class Message {
         public Decoder(byte[] messageBytes) {
             byteBuffer = ByteBuffer.wrap(messageBytes);
             byteBuffer.order(ByteOrder.BIG_ENDIAN);
+        }
+
+        public UUID decodeUUID() {
+            return UUID.fromString(decodeString());
         }
 
         public short decodeShort() {

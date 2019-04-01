@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class ForwardCancelMessage extends Message {
 
@@ -9,15 +10,15 @@ public class ForwardCancelMessage extends Message {
     private short orderId;
     private String symbol;
 
-    public ForwardCancelMessage(short playerId, short orderId, String symbol) {
-        super(MessageType.FWD_CANCEL);
+    public ForwardCancelMessage(UUID uuid, short playerId, short orderId, String symbol) {
+        super(MessageType.FWD_CANCEL, uuid);
         this.playerId = playerId;
         this.orderId = orderId;
         this.symbol = symbol;
     }
 
     public ForwardCancelMessage(CancelOrderMessage cancelOrderMessage) {
-        super(MessageType.FWD_CANCEL);
+        super(MessageType.FWD_CANCEL, cancelOrderMessage.conversationId);
         this.playerId = cancelOrderMessage.getPlayerId();
         this.orderId = cancelOrderMessage.getOrderId();
         this.symbol = cancelOrderMessage.getSymbol();
@@ -30,18 +31,20 @@ public class ForwardCancelMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
 
         short orderId = decoder.decodeShort();
         String symbol = decoder.decodeString();
 
-        return new ForwardCancelMessage(playerId, orderId, symbol);
+        return new ForwardCancelMessage(uuid, playerId, orderId, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeShort(orderId)
                 .encodeString(symbol)

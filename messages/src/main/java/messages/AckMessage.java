@@ -1,17 +1,19 @@
 package messages;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class AckMessage extends Message {
 
-    public AckMessage() {
-        super(MessageType.ACK);
+    public AckMessage(UUID uuid) {
+        super(MessageType.ACK, uuid);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(this.messageType)
+                .encodeUUID(this.conversationId)
                 .toByteArray();
     }
 
@@ -22,7 +24,9 @@ public class AckMessage extends Message {
             throw new IllegalArgumentException();
         }
 
-        return new AckMessage();
+        UUID uuid = decoder.decodeUUID();
+
+        return new AckMessage(uuid);
     }
 
     @Override

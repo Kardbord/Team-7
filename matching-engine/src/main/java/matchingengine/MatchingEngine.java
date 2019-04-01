@@ -1,15 +1,15 @@
 package matchingengine;
 
 
-import dispatcher.EnvelopeDispatcher;
+import communicators.Envelope;
+import communicators.TcpCommunicator;
 import messages.*;
-import communicators.*;
-import java.io.*;
-import java.net.*;
-import java.util.Collections;
-import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 
 public class MatchingEngine {
     String symbol;
@@ -57,7 +57,6 @@ public class MatchingEngine {
         orderIdCounter=0;
         register();
         this.orderHandler=new OrderHandler(this.restingBook,symbol,tcpCommunicator);
-        initMessageListener();
     }
 
 
@@ -68,7 +67,8 @@ public class MatchingEngine {
             //TODO change address to IP
             socket=new Socket(address,PORT);
             tcpCommunicator=new TcpCommunicator(socket);
-            tcpCommunicator.send(registerMatchingEngineMessage.encode());
+            initMessageListener();
+            tcpCommunicator.sendReliably(registerMatchingEngineMessage, AckMessage.class);
             LOG.info("%s sent registerMatchingEngineMessage to Gateway",this.symbol);
             //TODO wait for ack?
         }catch (IOException e) {
@@ -79,14 +79,13 @@ public class MatchingEngine {
 
 
     public void initMessageListener(){
-        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(tcpCommunicator, Message::decode);
-        envelopeDispatcher.registerForDispatch(TopOfBookRequestMessage.class, this::sendTopOfBook);
+        tcpCommunicator.registerForDispatch(TopOfBookRequestMessage.class, this::sendTopOfBook);
         LOG.info("%s Initialized TopOfBookRequestMessage listener",this.symbol);
-        envelopeDispatcher.registerForDispatch(ForwardOrderMessage.class, this::handleOrder);
+        tcpCommunicator.registerForDispatch(ForwardOrderMessage.class, this::handleOrder);
         LOG.info("%s Initialized ForwardOrderMessage listener",this.symbol);
-        envelopeDispatcher.registerForDispatch(ForwardCancelMessage.class, this::cancelOrder);
+        tcpCommunicator.registerForDispatch(ForwardCancelMessage.class, this::cancelOrder);
         LOG.info("%s Initialized ForwardCancelMessage listener",this.symbol);
-        new Thread(envelopeDispatcher).start();
+        new Thread(tcpCommunicator).start();
     }
 
     private void cancelOrder(Envelope<ForwardCancelMessage> envelope) {
@@ -111,10 +110,10 @@ public class MatchingEngine {
                 done=true;
             }
         }
-        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(playerId,
+        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(cancelOrderMessage.getConversationId(), playerId,
                 orderId,cancelledQuantity,this.symbol);
         try {
-            tcpCommunicator.send(cancelConfirmationMessage.encode());
+            tcpCommunicator.send(cancelConfirmationMessage);
             LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
         } catch (IOException e) {
             LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",
@@ -138,11 +137,11 @@ public class MatchingEngine {
         }
         LOG.info("%s Received TopOfBookRequestMessage from Gateway",this.symbol);
         TopOfBookRequestMessage topOfBookRequestMessage = envelope.getMessage();
-        TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(this.symbol,
+        TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(topOfBookRequestMessage.getConversationId(), this.symbol,
                 this.bidPrice, this.bidQuantity,this.askPrice,this.askQuantity);
         try {
-            tcpCommunicator.send(topOfBookResponseMessage.encode());
-            LOG.info("% sent topOfBookResponseMessage to Gateway",this.symbol);
+            tcpCommunicator.send(topOfBookResponseMessage);
+            LOG.info("%s sent topOfBookResponseMessage to Gateway",this.symbol);
         } catch (IOException e) {
             LOG.error("Failure in %s while trying to send topOfBookResponseMessage to Gateway",
                     symbol, e.getMessage());
@@ -177,10 +176,10 @@ public class MatchingEngine {
                 done=true;
             }
         }
-        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(playerId,
+        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(cancelOrderMessage.getConversationId(), playerId,
                 orderId,cancelledQuantity,this.symbol);
         try {
-            tcpCommunicator.send(cancelConfirmationMessage.encode());
+            tcpCommunicator.send(cancelConfirmationMessage);
             LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
         } catch (IOException e) {
             LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",

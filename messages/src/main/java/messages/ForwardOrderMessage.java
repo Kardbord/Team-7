@@ -4,6 +4,7 @@ import messages.SubmitOrderMessage.OrderType;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class ForwardOrderMessage extends Message {
 
@@ -42,8 +43,8 @@ public class ForwardOrderMessage extends Message {
         return Objects.hash(super.hashCode(), playerId, orderType, quantity, price, symbol);
     }
 
-    public ForwardOrderMessage(short playerId, OrderType orderType, short quantity, int price, String symbol) {
-        super(MessageType.FORWARD_ORDER);
+    public ForwardOrderMessage(UUID uuid, short playerId, OrderType orderType, short quantity, int price, String symbol) {
+        super(MessageType.FORWARD_ORDER, uuid);
         this.playerId = playerId;
         this.orderType = orderType;
         this.quantity = quantity;
@@ -67,6 +68,7 @@ public class ForwardOrderMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
 
         byte orderTypeByte = decoder.decodeByte();
@@ -78,13 +80,14 @@ public class ForwardOrderMessage extends Message {
         int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
-        return new ForwardOrderMessage(playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
+        return new ForwardOrderMessage(uuid, playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeByte(orderType.toByte())
                 .encodeShort(quantity)

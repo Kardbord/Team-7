@@ -1,14 +1,13 @@
 package dispatcher;
 
 import communicators.Envelope;
-import communicators.EnvelopeReceiver;
 import messages.AckMessage;
-import messages.Message;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import static org.mockito.Mockito.mock;
@@ -16,12 +15,11 @@ import static org.mockito.Mockito.verify;
 
 public class EnvelopeDispatcherTest {
 
-    private EnvelopeDispatcher<byte[]> victim;
-    private EnvelopeReceiver<byte[]> receiver = mock(EnvelopeReceiver.class);
+    private EnvelopeDispatcher victim;
 
     @Before
     public void setup() {
-        victim = new EnvelopeDispatcher<>(receiver, Message::decode);
+        victim = new EnvelopeDispatcher() {};
     }
 
     @Test
@@ -29,13 +27,14 @@ public class EnvelopeDispatcherTest {
         Consumer<Envelope<AckMessage>> methodToDispatch = mock(Consumer.class);
         victim.registerForDispatch(AckMessage.class, methodToDispatch);
 
-        byte[] ackMessageBytes = new AckMessage().encode();
+        AckMessage ackMessage = new AckMessage(UUID.randomUUID());
+        byte[] ackMessageBytes = ackMessage.encode();
         InetSocketAddress inetSocketAddress = mock(InetSocketAddress.class);
         Envelope<byte[]> envelopeToDispatch = new Envelope<>(ackMessageBytes, inetSocketAddress);
 
         victim.dispatch(envelopeToDispatch);
 
-        Envelope<AckMessage> expectedEnvelope = new Envelope<>(new AckMessage(), inetSocketAddress);
+        Envelope<AckMessage> expectedEnvelope = new Envelope<>(ackMessage, inetSocketAddress);
         verify(methodToDispatch).accept(expectedEnvelope);
     }
 

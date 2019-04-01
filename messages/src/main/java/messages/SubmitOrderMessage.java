@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class SubmitOrderMessage extends Message {
 
@@ -13,6 +14,15 @@ public class SubmitOrderMessage extends Message {
 
     public SubmitOrderMessage(short playerId, OrderType orderType, short quantity, int price, String symbol) {
         super(MessageType.SUBMIT_ORDER);
+        this.playerId = playerId;
+        this.orderType = orderType;
+        this.quantity = quantity;
+        this.price = price;
+        this.symbol = symbol;
+    }
+
+    SubmitOrderMessage(UUID uuid, short playerId, OrderType orderType, short quantity, int price, String symbol) {
+        super(MessageType.SUBMIT_ORDER, uuid);
         this.playerId = playerId;
         this.orderType = orderType;
         this.quantity = quantity;
@@ -56,6 +66,7 @@ public class SubmitOrderMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
 
         byte orderTypeByte = decoder.decodeByte();
@@ -67,13 +78,14 @@ public class SubmitOrderMessage extends Message {
         int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
-        return new SubmitOrderMessage(playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
+        return new SubmitOrderMessage(uuid, playerId, OrderType.getOrderTypeFromByte(orderTypeByte), quantity, price, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeByte(orderType.toByte())
                 .encodeShort(quantity)

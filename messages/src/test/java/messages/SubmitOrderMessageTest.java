@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -12,6 +13,7 @@ public class SubmitOrderMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.SUBMIT_ORDER;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         short expectedQuantity = 42;
@@ -20,6 +22,7 @@ public class SubmitOrderMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
@@ -29,6 +32,7 @@ public class SubmitOrderMessageTest {
 
         byte[] actualMessageBytes =
                 new SubmitOrderMessage(
+                        expectedUUID,
                         expectedPlayerId,
                         expectedOrderType,
                         expectedQuantity,
@@ -41,6 +45,7 @@ public class SubmitOrderMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.SUBMIT_ORDER;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
         short expectedQuantity = 42;
@@ -49,6 +54,7 @@ public class SubmitOrderMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)

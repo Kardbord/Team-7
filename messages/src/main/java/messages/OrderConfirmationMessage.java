@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class OrderConfirmationMessage extends Message {
 
@@ -12,9 +13,9 @@ public class OrderConfirmationMessage extends Message {
     private int price;
     private String symbol;
 
-    public OrderConfirmationMessage(short playerId, short orderId,
+    public OrderConfirmationMessage(UUID uuid, short playerId, short orderId,
                                     short executedQty, short restingQty, int price, String symbol) {
-        super(MessageType.ORDER_CONFIRMATION);
+        super(MessageType.ORDER_CONFIRMATION, uuid);
         this.playerId=playerId;
         this.orderId = orderId;
         this.executedQty = executedQty;
@@ -61,6 +62,7 @@ public class OrderConfirmationMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
         short orderId = decoder.decodeShort();
         short executedQty = decoder.decodeShort();
@@ -68,13 +70,14 @@ public class OrderConfirmationMessage extends Message {
         int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
 
-        return new OrderConfirmationMessage(playerId, orderId, executedQty,restingQty, price, symbol);
+        return new OrderConfirmationMessage(uuid, playerId, orderId, executedQty,restingQty, price, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Message.Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeShort(orderId)
                 .encodeShort(executedQty)

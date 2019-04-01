@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class RegisterMatchingEngineMessage extends Message {
 
@@ -12,10 +13,16 @@ public class RegisterMatchingEngineMessage extends Message {
         this.symbol = symbol;
     }
 
+    RegisterMatchingEngineMessage(UUID uuid, String symbol) {
+        super(MessageType.REGISTER_MATCHING_ENGINE, uuid);
+        this.symbol = symbol;
+    }
+
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeString(symbol)
                 .toByteArray();
     }
@@ -27,9 +34,10 @@ public class RegisterMatchingEngineMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         String symbol = decoder.decodeString();
 
-        return new RegisterMatchingEngineMessage(symbol);
+        return new RegisterMatchingEngineMessage(uuid, symbol);
     }
 
     public String getSymbol() {

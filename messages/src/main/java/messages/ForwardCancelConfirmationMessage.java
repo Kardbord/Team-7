@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class ForwardCancelConfirmationMessage extends Message {
 
@@ -9,15 +10,15 @@ public class ForwardCancelConfirmationMessage extends Message {
     private short cancelledQty;
     private String symbol;
 
-    public ForwardCancelConfirmationMessage(short orderId, short cancelledQty, String symbol) {
-        super(MessageType.FWD_CANCEL_CONF);
+    public ForwardCancelConfirmationMessage(UUID uuid, short orderId, short cancelledQty, String symbol) {
+        super(MessageType.FWD_CANCEL_CONF, uuid);
         this.orderId = orderId;
         this.cancelledQty = cancelledQty;
         this.symbol = symbol;
     }
 
     public ForwardCancelConfirmationMessage(CancelConfirmationMessage cancelConfirmationMessage) {
-        super(MessageType.FWD_CANCEL_CONF);
+        super(MessageType.FWD_CANCEL_CONF, cancelConfirmationMessage.conversationId);
         this.orderId = cancelConfirmationMessage.getOrderId();
         this.cancelledQty = cancelConfirmationMessage.getCancelledQty();
         this.symbol = cancelConfirmationMessage.getSymbol();
@@ -30,17 +31,19 @@ public class ForwardCancelConfirmationMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short orderId = decoder.decodeShort();
         short cancelledQty = decoder.decodeShort();
         String symbol = decoder.decodeString();
 
-        return new ForwardCancelConfirmationMessage(orderId, cancelledQty, symbol);
+        return new ForwardCancelConfirmationMessage(uuid, orderId, cancelledQty, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(orderId)
                 .encodeShort(cancelledQty)
                 .encodeString(symbol)

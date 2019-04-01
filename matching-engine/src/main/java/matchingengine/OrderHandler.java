@@ -1,6 +1,5 @@
 package matchingengine;
 
-import communicators.Envelope;
 import communicators.TcpCommunicator;
 import messages.ForwardOrderMessage;
 import messages.OrderConfirmationMessage;
@@ -39,11 +38,13 @@ public class OrderHandler {
                     if(restingBook.sellers.get(i).getQuantity()==remainingOrderQuantity){
                         orderComplete=true;
                         OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.sellers.get(i).getPlayerId(),restingBook.sellers.get(i).getOrderID(),
                                 restingBook.sellers.get(i).getQuantity(), (short)0,restingBook.sellers.get(i).getPrice(),
                                 restingBook.sellers.get(i).getSymbol()
                         );
                         OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 orderPlayerId, orderIdCounter,orderQuantity,(short)0,
                                 restingBook.sellers.get(i).getPrice(), orderSymbol);
                         try {
@@ -65,6 +66,7 @@ public class OrderHandler {
                     }
                     else if(restingBook.sellers.get(i).getQuantity()<remainingOrderQuantity){
                         OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.sellers.get(i).getPlayerId(),restingBook.sellers.get(i).getOrderID(),
                                 restingBook.sellers.get(i).getQuantity(),(short)0,restingBook.sellers.get(i).getPrice(),orderSymbol
                         );
@@ -86,10 +88,12 @@ public class OrderHandler {
                         orderComplete=true;
                         restingBook.sellers.get(i).setQuantity((short)(restingBook.sellers.get(i).getQuantity()-remainingOrderQuantity));
                         OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 orderPlayerId,orderIdCounter,orderQuantity,(short)0,
                                 restingBook.sellers.get(i).getPrice(),orderSymbol
                         );
                         OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.sellers.get(i).getPlayerId(),restingBook.sellers.get(i).getOrderID(),remainingOrderQuantity,
                                 restingBook.sellers.get(i).getQuantity(),restingBook.sellers.get(i).getPrice(),orderSymbol
                         );
@@ -118,6 +122,7 @@ public class OrderHandler {
                 restingBook.buyers.add(order);
                 Collections.sort(restingBook.buyers, Collections.reverseOrder());
                 OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                        forwardOrderMessage.getConversationId(),
                         orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
                 );
                 try {
@@ -138,12 +143,14 @@ public class OrderHandler {
                     if(restingBook.buyers.get(i).getQuantity()==remainingOrderQuantity){
                         orderComplete=true;
                         OrderConfirmationMessage orderConfirmationMessage1=new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.buyers.get(i).getPlayerId(),restingBook.buyers.get(i).getOrderID(),
                                 restingBook.buyers.get(i).getQuantity(), (short)0,orderPrice,
                                 restingBook.buyers.get(i).getSymbol()
                         );
                         //on this one we're keeping it with orderPrice, as the sale price should always be what it goes for
                         OrderConfirmationMessage orderConfirmationMessage2=new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 orderPlayerId, orderIdCounter,orderQuantity,(short)0,orderPrice,
                                 orderSymbol);
                         try {
@@ -166,6 +173,7 @@ public class OrderHandler {
                     else if(restingBook.buyers.get(i).getQuantity()<remainingOrderQuantity){
                         //similarly, this one should now be orderPrice
                         OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.buyers.get(i).getPlayerId(),restingBook.buyers.get(i).getOrderID(),
                                 restingBook.buyers.get(i).getQuantity(),(short)0,orderPrice,orderSymbol
                         );
@@ -187,9 +195,11 @@ public class OrderHandler {
                         orderComplete=true;
                         restingBook.buyers.get(i).setQuantity((short)(restingBook.buyers.get(i).getQuantity()-remainingOrderQuantity));
                         OrderConfirmationMessage orderConfirmationMessage1 = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 orderPlayerId,orderIdCounter,orderQuantity,(short)0,orderPrice,orderSymbol
                         );
                         OrderConfirmationMessage orderConfirmationMessage2 = new OrderConfirmationMessage(
+                                forwardOrderMessage.getConversationId(),
                                 restingBook.buyers.get(i).getPlayerId(),restingBook.buyers.get(i).getOrderID(),remainingOrderQuantity,
                                 restingBook.buyers.get(i).getQuantity(),orderPrice,orderSymbol
                         );
@@ -218,6 +228,7 @@ public class OrderHandler {
                 restingBook.sellers.add(order);
                 Collections.sort(restingBook.sellers);
                 OrderConfirmationMessage orderConfirmationMessage = new OrderConfirmationMessage(
+                        forwardOrderMessage.getConversationId(),
                         orderPlayerId,orderIdCounter,executedQty,remainingOrderQuantity,orderPrice,orderSymbol
                 );
                 try {

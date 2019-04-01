@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -11,12 +12,14 @@ public class ForwardCancelConfirmationMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_CANCEL_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedOrderId = 42;
         short expectedCancelledQty = 100;
         String expectedSymbol = "NVDA";
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedCancelledQty)
                 .encodeString(expectedSymbol)
@@ -24,6 +27,7 @@ public class ForwardCancelConfirmationMessageTest {
 
         byte[] actualMessageBytes =
                 new ForwardCancelConfirmationMessage(
+                        expectedUUID,
                         expectedOrderId,
                         expectedCancelledQty,
                         expectedSymbol).encode();
@@ -31,6 +35,7 @@ public class ForwardCancelConfirmationMessageTest {
 
         actualMessageBytes = new ForwardCancelConfirmationMessage(
                 new CancelConfirmationMessage(
+                        expectedUUID,
                         (short) 0,
                         expectedOrderId,
                         expectedCancelledQty,
@@ -43,12 +48,14 @@ public class ForwardCancelConfirmationMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_CANCEL_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedOrderId = 42;
         short expectedCancelledQty = 100;
         String expectedSymbol = "NVDA";
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedCancelledQty)
                 .encodeString(expectedSymbol)

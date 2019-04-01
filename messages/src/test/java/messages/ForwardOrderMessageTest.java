@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import messages.SubmitOrderMessage.OrderType;
 
@@ -14,6 +15,7 @@ public class ForwardOrderMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FORWARD_ORDER;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         OrderType expectedOrderType = OrderType.BUY;
         short expectedQuantity = 42;
@@ -22,6 +24,7 @@ public class ForwardOrderMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)
@@ -31,6 +34,7 @@ public class ForwardOrderMessageTest {
 
         byte[] actualMessageBytes =
                 new ForwardOrderMessage(
+                        expectedUUID,
                         expectedPlayerId,
                         expectedOrderType,
                         expectedQuantity,
@@ -43,6 +47,7 @@ public class ForwardOrderMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FORWARD_ORDER;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         OrderType expectedOrderType = OrderType.BUY;
         short expectedQuantity = 42;
@@ -51,6 +56,7 @@ public class ForwardOrderMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeByte(expectedOrderType.toByte())
                 .encodeShort(expectedQuantity)

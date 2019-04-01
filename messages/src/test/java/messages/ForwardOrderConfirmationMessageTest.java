@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -11,6 +12,7 @@ public class ForwardOrderConfirmationMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_ORDER_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedOrderId = 1;
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
@@ -19,6 +21,7 @@ public class ForwardOrderConfirmationMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedOrderId)
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)
@@ -27,13 +30,14 @@ public class ForwardOrderConfirmationMessageTest {
                 .toByteArray();
 
         byte[] actualMessageBytes =
-                new ForwardOrderConfirmationMessage(expectedOrderId, expectedSymbol, expectedExecutedQty,
+                new ForwardOrderConfirmationMessage(expectedUUID, expectedOrderId, expectedSymbol, expectedExecutedQty,
                         expectedRestingQty, expectedPrice).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
 
         actualMessageBytes = new ForwardOrderConfirmationMessage(
                 new OrderConfirmationMessage(
+                        expectedUUID,
                         (short) 0,
                         expectedOrderId,
                         expectedExecutedQty,
@@ -49,6 +53,7 @@ public class ForwardOrderConfirmationMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.FWD_ORDER_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedOrderId = 1;
         String expectedSymbol = "NVDA";
         short expectedExecutedQty = 2;
@@ -57,6 +62,7 @@ public class ForwardOrderConfirmationMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedOrderId)
                 .encodeString(expectedSymbol)
                 .encodeShort(expectedExecutedQty)

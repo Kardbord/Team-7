@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class CancelConfirmationMessage extends Message{
 
@@ -10,8 +11,8 @@ public class CancelConfirmationMessage extends Message{
     private short cancelledQty;
     private String symbol;
 
-    public CancelConfirmationMessage(short playerId, short orderId, short cancelledQty, String symbol) {
-        super(MessageType.CANCEL_CONF);
+    public CancelConfirmationMessage(UUID uuid, short playerId, short orderId, short cancelledQty, String symbol) {
+        super(MessageType.CANCEL_CONF, uuid);
         this.playerId = playerId;
         this.orderId = orderId;
         this.cancelledQty = cancelledQty;
@@ -25,18 +26,20 @@ public class CancelConfirmationMessage extends Message{
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
         short orderId = decoder.decodeShort();
         short cancelledQty = decoder.decodeShort();
         String symbol = decoder.decodeString();
 
-        return new CancelConfirmationMessage(playerId, orderId, cancelledQty, symbol);
+        return new CancelConfirmationMessage(uuid, playerId, orderId, cancelledQty, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeShort(orderId)
                 .encodeShort(cancelledQty)

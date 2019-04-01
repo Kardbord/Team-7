@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class CancelOrderMessage extends Message {
 
@@ -16,6 +17,13 @@ public class CancelOrderMessage extends Message {
         this.symbol = symbol;
     }
 
+    CancelOrderMessage(UUID uuid, short playerId, short orderId, String symbol) {
+        super(MessageType.CANCEL_ORDER, uuid);
+        this.playerId = playerId;
+        this.orderId = orderId;
+        this.symbol = symbol;
+    }
+
     public static CancelOrderMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 
@@ -23,18 +31,20 @@ public class CancelOrderMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
 
         short orderId = decoder.decodeShort();
         String symbol = decoder.decodeString();
 
-        return new CancelOrderMessage(playerId, orderId, symbol);
+        return new CancelOrderMessage(uuid, playerId, orderId, symbol);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeShort(orderId)
                 .encodeString(symbol)

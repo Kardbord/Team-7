@@ -1,24 +1,21 @@
 package player;
 
+import communicators.Envelope;
+import communicators.UdpCommunicator;
+import gateway.TopOfBookEntry;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
-import gateway.TopOfBookEntry;
-import communicators.UdpCommunicator;
-import communicators.Envelope;
-import dispatcher.EnvelopeDispatcher;
 import messages.*;
 import messages.SubmitOrderMessage.OrderType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import portfolio.PortfolioEntry;
 import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.util.ArrayList;
 
 public class Player {
 
@@ -56,19 +53,18 @@ public class Player {
         this.topOfBookMap = FXCollections.observableHashMap();
         this.portfolio = FXCollections.observableHashMap();
         this.symbolList = FXCollections.observableArrayList();
-        registerPlayer();
         initMessageListeners();
+        registerPlayer();
     }
 
     /**
      * Set up the listener to receive a Player Registered message
      */
     private void initMessageListeners() {
-        EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
-        envelopeDispatcher.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
-        envelopeDispatcher.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
-        envelopeDispatcher.registerForDispatch(ForwardOrderConfirmationMessage.class, this::updatePortfolio);
-        new Thread(envelopeDispatcher).start();
+        udpCommunicator.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
+        udpCommunicator.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
+        udpCommunicator.registerForDispatch(ForwardOrderConfirmationMessage.class, this::updatePortfolio);
+        new Thread(udpCommunicator).start();
         log.info("Initialized PlayerRegisteredListener");
         log.info("Initialized TopOfBookNotificationListener");
 
@@ -80,11 +76,11 @@ public class Player {
     private void registerPlayer() {
         try {
             log.info("Sending Player Register Message");
-            this.udpCommunicator.send(
-                    new RegisterPlayerMessage(this.name).encode(),
+            this.udpCommunicator.sendReliably(
+                    new RegisterPlayerMessage(this.name),
                     this.serverSocketAddress.getAddress(),
-                    this.serverSocketAddress.getPort()
-
+                    this.serverSocketAddress.getPort(),
+                    PlayerRegisteredMessage.class
             );
         } catch (IOException e) {
             e.printStackTrace();
@@ -95,9 +91,12 @@ public class Player {
     public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) {
         log.info("Player %d submitted a %s order for %d shares of %s at %d per share", playerId, orderType.name(), quantity, symbol, price);
         try {
-            this.udpCommunicator.send(new SubmitOrderMessage(playerId, orderType, quantity, price, symbol).encode(),
-                    this.serverSocketAddress.getAddress(),
-                    this.serverSocketAddress.getPort());
+            this.udpCommunicator.sendReliably(
+                new SubmitOrderMessage(playerId, orderType, quantity, price, symbol),
+                this.serverSocketAddress.getAddress(),
+                this.serverSocketAddress.getPort(),
+                ForwardOrderConfirmationMessage.class
+            );
         } catch (IOException e) {
             log.error("Failed to send order: %s", e.getMessage());
         }
@@ -128,7 +127,7 @@ public class Player {
     }
 
     private void updateTopOfBook(Envelope<TopOfBookNotificationMessage> env) {
-//        log.info("Received TopOfBookMessage");
+        log.info("Received TopOfBookMessage: " + env.getMessage());
         TopOfBookNotificationMessage msg = env.getMessage();
         String symbol = msg.getSymbol();
         topOfBookMap.put(msg.getSymbol(), new TopOfBookEntry(

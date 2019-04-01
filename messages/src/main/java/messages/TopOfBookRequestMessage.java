@@ -1,6 +1,7 @@
 package messages;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class TopOfBookRequestMessage extends Message {
 
@@ -8,10 +9,15 @@ public class TopOfBookRequestMessage extends Message {
         super(MessageType.TOP_OF_BOOK_REQUEST);
     }
 
+    public TopOfBookRequestMessage(UUID uuid) {
+        super(MessageType.TOP_OF_BOOK_REQUEST, uuid);
+    }
+
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(this.messageType)
+                .encodeUUID(conversationId)
                 .toByteArray();
     }
 
@@ -32,6 +38,6 @@ public class TopOfBookRequestMessage extends Message {
             throw new IllegalArgumentException();
         }
 
-        return new TopOfBookRequestMessage();
+        return new TopOfBookRequestMessage(decoder.decodeUUID());
     }
 }

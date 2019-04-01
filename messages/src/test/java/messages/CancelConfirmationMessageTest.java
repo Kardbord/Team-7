@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -12,6 +13,7 @@ public class CancelConfirmationMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.CANCEL_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         short expectedOrderId = 42;
         short expectedQty = 100;
@@ -19,6 +21,7 @@ public class CancelConfirmationMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedQty)
@@ -27,6 +30,7 @@ public class CancelConfirmationMessageTest {
 
         byte[] actualMessageBytes =
                 new CancelConfirmationMessage(
+                        expectedUUID,
                         expectedPlayerId,
                         expectedOrderId,
                         expectedQty,
@@ -38,6 +42,7 @@ public class CancelConfirmationMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.CANCEL_CONF;
+        UUID expectedUUID = UUID.randomUUID();
         short expectedPlayerId = 12;
         short expectedOrderId = 42;
         short expectedQty = 100;
@@ -45,6 +50,7 @@ public class CancelConfirmationMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeShort(expectedPlayerId)
                 .encodeShort(expectedOrderId)
                 .encodeShort(expectedQty)

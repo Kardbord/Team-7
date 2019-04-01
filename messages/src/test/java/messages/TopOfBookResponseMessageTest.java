@@ -3,6 +3,7 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -11,6 +12,7 @@ public class TopOfBookResponseMessageTest {
     @Test
     public void encodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.TOP_OF_BOOK_RESPONSE;
+        UUID expectedUUID = UUID.randomUUID();
         String expectedSymbol = "NVDA";
         int expectedBidPrice = 500;
         short expectedBidQty = 5;
@@ -19,6 +21,7 @@ public class TopOfBookResponseMessageTest {
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeString(expectedSymbol)
                 .encodeInt(expectedBidPrice)
                 .encodeShort(expectedBidQty)
@@ -28,6 +31,7 @@ public class TopOfBookResponseMessageTest {
 
         byte[] actualMessageBytes =
                 new TopOfBookResponseMessage(
+                        expectedUUID,
                         expectedSymbol,
                         expectedBidPrice,
                         expectedBidQty, expectedAskPrice,
@@ -39,6 +43,7 @@ public class TopOfBookResponseMessageTest {
     @Test
     public void decodesIntoExpected() throws IOException {
         Message.MessageType expectedMessageType = Message.MessageType.TOP_OF_BOOK_RESPONSE;
+        UUID expectedUUID = UUID.randomUUID();
         String expectedSymbol = "NVDA";
         int expectedBidPrice = 500;
         short expectedBidQty = 5;
@@ -47,6 +52,7 @@ public class TopOfBookResponseMessageTest {
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
+                .encodeUUID(expectedUUID)
                 .encodeString(expectedSymbol)
                 .encodeInt(expectedBidPrice)
                 .encodeShort(expectedBidQty)

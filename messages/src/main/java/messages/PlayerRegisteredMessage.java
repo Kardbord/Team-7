@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class PlayerRegisteredMessage extends Message{
 
@@ -31,8 +32,8 @@ public class PlayerRegisteredMessage extends Message{
         return Objects.hash(super.hashCode(), playerId, initialCash);
     }
 
-    public PlayerRegisteredMessage(short playerId, int initialCash){
-        super(MessageType.PLAYER_REGISTERED);
+    public PlayerRegisteredMessage(UUID uuid, short playerId, int initialCash){
+        super(MessageType.PLAYER_REGISTERED, uuid);
         this.playerId = playerId;
         this.initialCash = initialCash;
     }
@@ -44,10 +45,11 @@ public class PlayerRegisteredMessage extends Message{
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short playerId = decoder.decodeShort();
         int initialCash = decoder.decodeInt();
 
-        return new PlayerRegisteredMessage(playerId, initialCash);
+        return new PlayerRegisteredMessage(uuid, playerId, initialCash);
     }
 
     public short getPlayerId() {
@@ -62,6 +64,7 @@ public class PlayerRegisteredMessage extends Message{
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(playerId)
                 .encodeInt(initialCash)
                 .toByteArray();

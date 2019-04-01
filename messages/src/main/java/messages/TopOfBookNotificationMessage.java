@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class TopOfBookNotificationMessage extends Message {
 
@@ -20,10 +21,20 @@ public class TopOfBookNotificationMessage extends Message {
         this.askQuantity = askQuantity;
     }
 
+    TopOfBookNotificationMessage(UUID uuid, String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
+        super(MessageType.TOP_OF_BOOK_NOTIFICATION, uuid);
+        this.symbol = symbol;
+        this.bidPrice = bidPrice;
+        this.bidQuantity = bidQuantity;
+        this.askPrice = askPrice;
+        this.askQuantity = askQuantity;
+    }
+
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeString(symbol)
                 .encodeInt(bidPrice)
                 .encodeShort(bidQuantity)
@@ -39,13 +50,14 @@ public class TopOfBookNotificationMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         String symbol = decoder.decodeString();
         int bidPrice = decoder.decodeInt();
         short bidQuantity = decoder.decodeShort();
         int askPrice = decoder.decodeInt();
         short askQuantity = decoder.decodeShort();
 
-        return new TopOfBookNotificationMessage(symbol, bidPrice, bidQuantity, askPrice, askQuantity);
+        return new TopOfBookNotificationMessage(uuid, symbol, bidPrice, bidQuantity, askPrice, askQuantity);
     }
 
     public String getSymbol() {

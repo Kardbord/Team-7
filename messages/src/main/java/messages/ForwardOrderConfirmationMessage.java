@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class ForwardOrderConfirmationMessage extends Message {
 
@@ -11,8 +12,8 @@ public class ForwardOrderConfirmationMessage extends Message {
     private short restingQty;
     private int price;
 
-    public ForwardOrderConfirmationMessage(short orderId, String symbol, short executedQty, short restingQty, int price) {
-        super(MessageType.FWD_ORDER_CONF);
+    public ForwardOrderConfirmationMessage(UUID uuid, short orderId, String symbol, short executedQty, short restingQty, int price) {
+        super(MessageType.FWD_ORDER_CONF, uuid);
         this.orderId = orderId;
         this.symbol = symbol;
         this.executedQty = executedQty;
@@ -21,7 +22,7 @@ public class ForwardOrderConfirmationMessage extends Message {
     }
 
     public ForwardOrderConfirmationMessage(OrderConfirmationMessage orderConfirmationMessage) {
-        super(MessageType.FWD_ORDER_CONF);
+        super(MessageType.FWD_ORDER_CONF, orderConfirmationMessage.conversationId);
         this.orderId = orderConfirmationMessage.getOrderId();
         this.symbol = orderConfirmationMessage.getSymbol();
         this.executedQty = orderConfirmationMessage.getExecutedQty();
@@ -65,6 +66,7 @@ public class ForwardOrderConfirmationMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         short orderId = decoder.decodeShort();
 
         String symbol = decoder.decodeString();
@@ -72,13 +74,14 @@ public class ForwardOrderConfirmationMessage extends Message {
         short restingQty = decoder.decodeShort();
         int price = decoder.decodeInt();
 
-        return new ForwardOrderConfirmationMessage(orderId, symbol, executedQty, restingQty, price);
+        return new ForwardOrderConfirmationMessage(uuid, orderId, symbol, executedQty, restingQty, price);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeShort(orderId)
                 .encodeString(symbol)
                 .encodeShort(executedQty)

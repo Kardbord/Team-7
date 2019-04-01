@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class TopOfBookResponseMessage extends Message {
 
@@ -11,8 +12,8 @@ public class TopOfBookResponseMessage extends Message {
     private int askPrice;
     private short askQuantity;
 
-    public TopOfBookResponseMessage(String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
-        super(MessageType.TOP_OF_BOOK_RESPONSE);
+    public TopOfBookResponseMessage(UUID uuid, String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
+        super(MessageType.TOP_OF_BOOK_RESPONSE, uuid);
         this.symbol = symbol;
         this.bidPrice = bidPrice;
         this.bidQuantity = bidQuantity;
@@ -24,6 +25,7 @@ public class TopOfBookResponseMessage extends Message {
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeString(symbol)
                 .encodeInt(bidPrice)
                 .encodeShort(bidQuantity)
@@ -39,13 +41,14 @@ public class TopOfBookResponseMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         String symbol = decoder.decodeString();
         int bidPrice = decoder.decodeInt();
         short bidQuantity = decoder.decodeShort();
         int askPrice = decoder.decodeInt();
         short askQuantity = decoder.decodeShort();
 
-        return new TopOfBookResponseMessage(symbol, bidPrice, bidQuantity, askPrice, askQuantity);
+        return new TopOfBookResponseMessage(uuid, symbol, bidPrice, bidQuantity, askPrice, askQuantity);
     }
 
     public String getSymbol() {

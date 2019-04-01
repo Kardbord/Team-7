@@ -3,7 +3,6 @@ package gateway;
 import communicators.Envelope;
 import communicators.TcpCommunicator;
 import communicators.UdpCommunicator;
-import dispatcher.EnvelopeDispatcher;
 import messages.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,14 +50,11 @@ public class Gateway {
      */
     private ConcurrentHashMap<String, TopOfBookEntry> symbolToTopOfBookMap;
 
-    private EnvelopeDispatcher<byte[]> udpDispatcher;
-
     public Gateway() throws IOException {
         this.symbolToMatchingEngineMap = new ConcurrentHashMap<>();
         this.idToPlayerDetailMap = new ConcurrentHashMap<>();
         this.symbolToTopOfBookMap = new ConcurrentHashMap<>();
         this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("127.0.0.1", PORT));
-        this.udpDispatcher = new EnvelopeDispatcher<>(udpCommunicator, Message::decode);
         initMatchingEngineMessageListeners();
         initUdpDispatcherListeners();
         initTopOfBookRefresh();
@@ -72,7 +68,7 @@ public class Gateway {
                     Thread.sleep(TOP_OF_BOOK_REFRESH_RATE);
                     symbolToMatchingEngineMap.forEach((symbol, tcpCommunicator) -> {
                         try {
-                            tcpCommunicator.send(new TopOfBookRequestMessage().encode());
+                            tcpCommunicator.sendReliably(new TopOfBookRequestMessage(), TopOfBookResponseMessage.class);
                             LOG.info("Sent TopOfBookRefresh request to %s", symbol);
                         } catch (IOException e) {
                             LOG.error("Failure in Gateway while requesting Top Of Book from %s -> %s", symbol, e.getMessage());
@@ -102,7 +98,7 @@ public class Gateway {
                                 );
                                 try {
                                     udpCommunicator.send(
-                                            notfication.encode(),
+                                            notfication,
                                             playerDetailEntry.getSocketAddress().getAddress(),
                                             playerDetailEntry.getSocketAddress().getPort()
                                     );
@@ -139,8 +135,7 @@ public class Gateway {
                 }
                 LOG.info("Connection from %s", serverSocket.getInetAddress().getHostAddress());
 
-                EnvelopeDispatcher<byte[]> envelopeDispatcher = new EnvelopeDispatcher<>(tcpCommunicator, Message::decode);
-                envelopeDispatcher.registerForDispatch(
+                tcpCommunicator.registerForDispatch(
                         RegisterMatchingEngineMessage.class,
                         (Envelope<RegisterMatchingEngineMessage> env) -> {
                             try {
@@ -156,24 +151,23 @@ public class Gateway {
                         serverSocket.getInetAddress().getHostAddress()
                 );
 
-                envelopeDispatcher.registerForDispatch(TopOfBookResponseMessage.class, this::updateTopOfBook);
+                tcpCommunicator.registerForDispatch(TopOfBookResponseMessage.class, this::updateTopOfBook);
                 LOG.info("Registered TopOfBookResponseMessage handler for %s",
                         serverSocket.getInetAddress().getHostAddress()
                 );
 
-                envelopeDispatcher.registerForDispatch(OrderConfirmationMessage.class, this::forwardOrderConfirmation);
+                tcpCommunicator.registerForDispatch(OrderConfirmationMessage.class, this::forwardOrderConfirmation);
                 LOG.info("Registered OrderConfirmationMessage handler for %s",
                         serverSocket.getInetAddress().getHostAddress()
                 );
 
-                envelopeDispatcher.registerForDispatch(CancelConfirmationMessage.class, this::forwardCancelConfirmation);
+                tcpCommunicator.registerForDispatch(CancelConfirmationMessage.class, this::forwardCancelConfirmation);
                 LOG.info("Registered CancelConfirmationMessage handler for %s",
                         serverSocket.getInetAddress().getHostAddress()
                 );
 
                 // TODO: registerForDispatch any other messages we need to listen for
-
-                new Thread(envelopeDispatcher).start();
+                new Thread(tcpCommunicator).start();
             }
         }).start();
         LOG.info("Initialized RegisterMatchingEngineMessage listener");
@@ -185,9 +179,9 @@ public class Gateway {
     private void registerMatchingEngine(Envelope<RegisterMatchingEngineMessage> envelope, TcpCommunicator tcpCommunicator) throws IOException {
         this.symbolToMatchingEngineMap.put(envelope.getMessage().getSymbol(), tcpCommunicator);
         LOG.info("Received RegisterMatchingEngineMessage from %s", envelope.getMessage().getSymbol());
-        tcpCommunicator.send(new AckMessage().encode());
+        tcpCommunicator.send(new AckMessage(envelope.getMessage().getConversationId()));
         LOG.info("Sent AckMessage to %s", envelope.getMessage().getSymbol());
-        tcpCommunicator.send(new TopOfBookRequestMessage().encode());
+        tcpCommunicator.sendReliably(new TopOfBookRequestMessage(), TopOfBookResponseMessage.class);
         LOG.info("Sent TopOfBookRequestMessage to %s", envelope.getMessage().getSymbol());
     }
 
@@ -207,17 +201,17 @@ public class Gateway {
     }
 
     private void initUdpDispatcherListeners() {
-        udpDispatcher.registerForDispatch(RegisterPlayerMessage.class, this::registerPlayer);
+        udpCommunicator.registerForDispatch(RegisterPlayerMessage.class, this::registerPlayer);
         LOG.info("Initialized RegisterPlayerMessage listener");
 
-        udpDispatcher.registerForDispatch(SubmitOrderMessage.class, this::forwardOrder);
+        udpCommunicator.registerForDispatch(SubmitOrderMessage.class, this::forwardOrder);
         LOG.info("Initialized SubmitOrderMessage listener");
 
-        udpDispatcher.registerForDispatch(CancelOrderMessage.class, this::forwardCancel);
+        udpCommunicator.registerForDispatch(CancelOrderMessage.class, this::forwardCancel);
         LOG.info("Initialized CancelOrderMessage listener");
 
         // TODO: registerForDispatch any other messages we need to listen for
-        new Thread(udpDispatcher).start();
+        new Thread(udpCommunicator).start();
     }
 
     private void registerPlayer(Envelope<RegisterPlayerMessage> envelope) {
@@ -235,9 +229,10 @@ public class Gateway {
         try {
             this.udpCommunicator.send(
                     new PlayerRegisteredMessage(
+                            envelope.getMessage().getConversationId(),
                             newPlayerDetailEntry.getId(),
                             newPlayerDetailEntry.getCash()
-                    ).encode(),
+                    ),
                     newPlayerDetailEntry.getSocketAddress().getAddress(),
                     newPlayerDetailEntry.getSocketAddress().getPort()
             );
@@ -260,7 +255,7 @@ public class Gateway {
                                                                                         forwardOrderMessage.getPrice());
 
         try {
-            matchingEngineComm.send(forwardOrderMessage.encode());
+            matchingEngineComm.sendReliably(forwardOrderMessage, OrderConfirmationMessage.class);
         } catch (IOException e) {
             String player = idToPlayerDetailMap.get(forwardOrderMessage.getPlayerId()).getName();
             String symbol = forwardOrderMessage.getSymbol();
@@ -283,7 +278,7 @@ public class Gateway {
         int playerPort = player.getSocketAddress().getPort();
         LOG.info("Forwarding Order Confirmation to Player %d", player.getId());
         try {
-            udpCommunicator.send(forwardOrderConfirmationMessage.encode(), playerAddress, playerPort);
+            udpCommunicator.send(forwardOrderConfirmationMessage, playerAddress, playerPort);
         } catch (IOException e) {
             String symbol = forwardOrderConfirmationMessage.getSymbol();
             LOG.error("Failed to send ForwardOrderConfirmationMessage. OrderConfirmationMessage came from %s bound for %s",
@@ -298,7 +293,7 @@ public class Gateway {
         TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardCancelMessage.getSymbol());
 
         try {
-            matchingEngineComm.send(forwardCancelMessage.encode());
+            matchingEngineComm.sendReliably(forwardCancelMessage, CancelConfirmationMessage.class);
         } catch (IOException e) {
             String player = idToPlayerDetailMap.get(forwardCancelMessage.getPlayerId()).getName();
             String symbol = forwardCancelMessage.getSymbol();
@@ -320,7 +315,7 @@ public class Gateway {
         int playerPort = player.getSocketAddress().getPort();
 
         try {
-            udpCommunicator.send(forwardCancelConfirmationMessage.encode(), playerAddress, playerPort);
+            udpCommunicator.send(forwardCancelConfirmationMessage, playerAddress, playerPort);
         } catch (IOException e) {
             String symbol = forwardCancelConfirmationMessage.getSymbol();
             LOG.error("Failed to send ForwardCancelConfirmationMessage. CancelConfirmationMessage came from %s bound for %s",

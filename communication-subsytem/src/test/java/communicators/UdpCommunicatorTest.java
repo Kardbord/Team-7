@@ -1,6 +1,8 @@
 package communicators;
 
+import messages.AckMessage;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -9,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +37,19 @@ public class UdpCommunicatorTest {
         victim.send(expectedMessageBytes, inetAddress, port);
 
         verify(datagramChannel).send(ByteBuffer.wrap(expectedMessageBytes), expectedSocketAddress);
+    }
+
+    @Test
+    public void reliableSendShouldTryMaxTimesAndThrowIOExceptionWhenNoResponse() throws IOException {
+
+        try{
+            victim.sendReliably(new AckMessage(UUID.randomUUID()), InetAddress.getLocalHost(), 1, Ignore.class);
+        }catch(IOException e){
+            verify(datagramChannel, times(RetyPolicies.DEFAULT_MAX_RETRIES)).send(any(), any());
+            return;
+        }
+
+        throw new Error("Expected exception but received none");
     }
 
     @Test

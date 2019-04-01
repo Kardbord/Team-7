@@ -1,6 +1,8 @@
 package communicators;
 
+import messages.AckMessage;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -8,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
@@ -36,6 +39,21 @@ public class TcpCommunicatorTest {
         victim.send(expectedMessageBytes);
 
         verify(outputStream).write(expectedMessageBytes);
+    }
+
+    @Test
+    public void reliableSendShouldTryMaxTimesAndThrowIOExceptionWhenNoResponse() throws IOException {
+        OutputStream outputStream = mock(OutputStream.class);
+        when(socket.getOutputStream()).thenReturn(outputStream);
+
+        try{
+            victim.sendReliably(new AckMessage(UUID.randomUUID()), Ignore.class);
+        }catch(IOException e){
+            verify(outputStream, times(RetyPolicies.DEFAULT_MAX_RETRIES)).write(any());
+            return;
+        }
+
+        throw new Error("Expected exception but received none");
     }
 
     @Test

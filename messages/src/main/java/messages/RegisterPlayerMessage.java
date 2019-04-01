@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 public class RegisterPlayerMessage extends Message {
 
@@ -12,6 +13,11 @@ public class RegisterPlayerMessage extends Message {
         this.playerName = playerName;
     }
 
+    RegisterPlayerMessage(UUID uuid, String playerName) {
+        super(MessageType.REGISTER_PLAYER, uuid);
+        this.playerName = playerName;
+    }
+
     public static RegisterPlayerMessage decode(byte[] messageBytes) {
         Decoder decoder = new Decoder(messageBytes);
 
@@ -19,15 +25,17 @@ public class RegisterPlayerMessage extends Message {
             throw new IllegalArgumentException();
         }
 
+        UUID uuid = decoder.decodeUUID();
         String playerName = decoder.decodeString();
 
-        return new RegisterPlayerMessage(playerName);
+        return new RegisterPlayerMessage(uuid, playerName);
     }
 
     @Override
     public byte[] encode() throws IOException {
         return new Encoder()
                 .encodeMessageType(messageType)
+                .encodeUUID(conversationId)
                 .encodeString(playerName)
                 .toByteArray();
     }
