@@ -2,7 +2,6 @@ package communicators;
 
 import messages.AckMessage;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -47,7 +46,7 @@ public class TcpCommunicatorTest {
         when(socket.getOutputStream()).thenReturn(outputStream);
 
         try{
-            victim.sendReliably(new AckMessage(UUID.randomUUID()), Ignore.class);
+            victim.sendReliably(new AckMessage(UUID.randomUUID()), AckMessage.class);
         }catch(IOException e){
             verify(outputStream, times(RetyPolicies.DEFAULT_MAX_RETRIES)).write(any());
             return;

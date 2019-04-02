@@ -43,7 +43,7 @@ public class UdpCommunicatorTest {
     public void reliableSendShouldTryMaxTimesAndThrowIOExceptionWhenNoResponse() throws IOException {
 
         try{
-            victim.sendReliably(new AckMessage(UUID.randomUUID()), InetAddress.getLocalHost(), 1, Ignore.class);
+            victim.sendReliably(new AckMessage(UUID.randomUUID()), InetAddress.getLocalHost(), 1, AckMessage.class);
         }catch(IOException e){
             verify(datagramChannel, times(RetyPolicies.DEFAULT_MAX_RETRIES)).send(any(), any());
             return;

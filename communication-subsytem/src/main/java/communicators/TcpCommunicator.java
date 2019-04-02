@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class TcpCommunicator extends EnvelopeDispatcher implements Runnable {
@@ -33,15 +34,22 @@ public class TcpCommunicator extends EnvelopeDispatcher implements Runnable {
         outputStream.write(messageToSend.encode());
     }
 
-    public <T> void sendReliably(Message messageToSend, Class<T> expectedResponse) throws IOException {
+    public <T extends Message> void sendReliably(Message messageToSend, Class<T> expectedResponse) throws IOException {
         sendReliably(messageToSend, expectedResponse, RetyPolicies.DEFAULT_MAX_RETRIES, RetyPolicies.DEFAULT_MILLISECONDS_BETWEEN_RETRIES);
     }
 
-    public <T> void sendReliably(Message messageToSend, Class<T> expectedResponse, int maxRetries, long millisecondsBetweenRetries) throws IOException {
+    public <T extends Message> void sendReliably(Message messageToSend, Class<T> expectedResponse, int maxRetries, long millisecondsBetweenRetries) throws IOException {
 
         final boolean[] receivedResponse = {false};
 
-        Consumer<Envelope<T>> responseInterceptor = (ignored) -> receivedResponse[0] = true;
+        Consumer<Envelope<T>> responseInterceptor = (envelope) -> {
+            Message receivedMessage = envelope.getMessage();
+            UUID receivedConversationId = receivedMessage.getConversationId();
+            UUID expectedConversationId = messageToSend.getConversationId();
+            if(receivedConversationId.equals(expectedConversationId)) {
+                receivedResponse[0] = true;
+            }
+        };
         registerForDispatch(expectedResponse, responseInterceptor);
 
         while(!receivedResponse[0] && maxRetries > 0) {
