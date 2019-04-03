@@ -54,7 +54,7 @@ public class Gateway {
         this.symbolToMatchingEngineMap = new ConcurrentHashMap<>();
         this.idToPlayerDetailMap = new ConcurrentHashMap<>();
         this.symbolToTopOfBookMap = new ConcurrentHashMap<>();
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("127.0.0.1", PORT));
+        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("0.0.0.0", PORT));
         initMatchingEngineMessageListeners();
         initUdpDispatcherListeners();
         initTopOfBookRefresh();

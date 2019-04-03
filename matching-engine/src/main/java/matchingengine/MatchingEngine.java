@@ -63,7 +63,9 @@ public class MatchingEngine {
     public void register(){
         RegisterMatchingEngineMessage registerMatchingEngineMessage = new RegisterMatchingEngineMessage(this.symbol);
         try {
-            InetAddress address=InetAddress.getLocalHost();
+            // TODO: change this string to the appropriate AWS public DNS
+            //String address="ec2-34-216-105-242.us-west-2.compute.amazonaws.com";
+            InetAddress address = InetAddress.getLocalHost();
             //TODO change address to IP
             socket=new Socket(address,PORT);
             tcpCommunicator=new TcpCommunicator(socket);
