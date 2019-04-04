@@ -15,7 +15,6 @@ import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
 
 public class Player {
 
@@ -31,10 +30,10 @@ public class Player {
     private int playerId;
     private int cash;
 
-    public Player(String name) throws IOException {
+    public Player(String name, UdpCommunicator udpCommunicator) throws IOException {
         this.name = name;
-        this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(),Utils.PORT);
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
+        this.serverSocketAddress = new InetSocketAddress(Utils.getLocalIp(), Utils.PORT);
+        this.udpCommunicator = udpCommunicator;
         registerPlayer();
         initMessageListeners();
 
@@ -42,14 +41,15 @@ public class Player {
 
     /**
      * Overloaded constructor for specifying a server IP
+     *
      * @param name
      * @param serverAddress
      * @throws IOException
      */
-    public Player(String name, String serverAddress) throws IOException {
+    public Player(String name, UdpCommunicator udpCommunicator, String serverAddress) throws IOException {
         this.name = name;
-        this.serverSocketAddress = new InetSocketAddress(serverAddress,Utils.PORT);
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0));
+        this.serverSocketAddress = new InetSocketAddress(serverAddress, Utils.PORT);
+        this.udpCommunicator = udpCommunicator;
         this.topOfBookMap = FXCollections.observableHashMap();
         this.portfolio = FXCollections.observableHashMap();
         this.symbolList = FXCollections.observableArrayList();
@@ -92,10 +92,10 @@ public class Player {
         log.info("Player %d submitted a %s order for %d shares of %s at %d per share", playerId, orderType.name(), quantity, symbol, price);
         try {
             this.udpCommunicator.sendReliably(
-                new SubmitOrderMessage(playerId, orderType, quantity, price, symbol),
-                this.serverSocketAddress.getAddress(),
-                this.serverSocketAddress.getPort(),
-                ForwardOrderConfirmationMessage.class
+                    new SubmitOrderMessage(playerId, orderType, quantity, price, symbol),
+                    this.serverSocketAddress.getAddress(),
+                    this.serverSocketAddress.getPort(),
+                    ForwardOrderConfirmationMessage.class
             );
         } catch (IOException e) {
             log.error("Failed to send order: %s", e.getMessage());
@@ -104,6 +104,7 @@ public class Player {
 
     /**
      * Method that is called when a PlayerRegistered Message is received.
+     *
      * @param env received envelope
      */
     private void updateRegisteredPlayer(Envelope<PlayerRegisteredMessage> env) {

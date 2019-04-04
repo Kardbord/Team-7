@@ -1,5 +1,6 @@
 package userInterface;
 
+import communicators.UdpCommunicator;
 import gateway.TopOfBookEntry;
 import javafx.application.Platform;
 import javafx.collections.*;
@@ -13,6 +14,8 @@ import player.Player;
 import portfolio.PortfolioEntry;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 
 import messages.SubmitOrderMessage.OrderType;
 
@@ -71,7 +74,7 @@ public class Controller {
 
 
     void initPlayer(String name, String server) throws IOException{
-        this.player = new Player(name, server);
+        this.player = new Player(name, new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0)), server);
         topOfBookMap = player.getTopOfBookMap();
         topOfBookMap.addListener(new MapChangeListener<String, TopOfBookEntry>() {
             @Override

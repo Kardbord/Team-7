@@ -1,8 +1,11 @@
 package userInterface;
 
+import communicators.UdpCommunicator;
 import player.Player;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.util.Scanner;
 
 public class ClientConsole {
@@ -11,7 +14,7 @@ public class ClientConsole {
 
     private static void printMenu() {
         System.out.println(
-                        "\t\t+-----------------------------+\t\t\n" +
+                "\t\t+-----------------------------+\t\t\n" +
                         "\t\t|                             |\t\t\n" +
                         "\t\t|    Please Enter Name to     |\t\t\n" +
                         "\t\t|          Register           |\t\t\n" +
@@ -22,7 +25,7 @@ public class ClientConsole {
 
     public static void printPlayerMenu(Player player) {
         System.out.printf(
-                        "\t\t+-------------------------------------+\t\t\n" +
+                "\t\t+-------------------------------------+\t\t\n" +
                         "\t\t|Name: %-15s                |\t\t\n" +
                         "\t\t|Player ID: %-15d           |\t\t\n" +
                         "\t\t|Cash: %-15d                |\t\t\n" +
@@ -60,10 +63,22 @@ public class ClientConsole {
         printMenu();
         Player player;
         if (args.length < 2) {
-            player = new Player(getUserInput("Name: "));
-        }
-        else {
-            player = new Player(getUserInput("Name: "), args[0]);
+            player = new Player(
+                    getUserInput("Name: "),
+                    new UdpCommunicator(
+                            DatagramChannel.open(),
+                            new InetSocketAddress(0)
+                    )
+            );
+        } else {
+            player = new Player(
+                    getUserInput("Name: "),
+                    new UdpCommunicator(
+                            DatagramChannel.open(),
+                            new InetSocketAddress(0)
+                    ),
+                    args[0]
+            );
         }
 
     }
