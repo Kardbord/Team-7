@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -90,6 +91,9 @@ public class TcpCommunicator extends EnvelopeDispatcher implements Runnable {
                 dispatch(receive());
             } catch (IOException e) {
                 e.printStackTrace();
+                if (e instanceof SocketException) {
+                    return;
+                }
             }
         }
     }

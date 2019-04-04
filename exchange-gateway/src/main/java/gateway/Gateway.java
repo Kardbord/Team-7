@@ -8,9 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
+import java.net.*;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,7 +69,12 @@ public class Gateway {
                             tcpCommunicator.sendReliably(new TopOfBookRequestMessage(), TopOfBookResponseMessage.class);
                             LOG.info("Sent TopOfBookRefresh request to %s", symbol);
                         } catch (IOException e) {
-                            LOG.error("Failure in Gateway while requesting Top Of Book from %s -> %s", symbol, e.getMessage());
+                            if (e instanceof SocketException) {
+                                LOG.error("Failure in Gateway while requesting Top Of Book from %s -> %s -- removing tcpCommunicator", symbol, e.getMessage());
+                                symbolToMatchingEngineMap.remove(symbol);
+                            } else {
+                                LOG.error("Failure in Gateway while requesting Top Of Book from %s -> %s", symbol, e.getMessage());
+                            }
                         }
                     });
                 } catch (InterruptedException e) {
@@ -249,10 +252,10 @@ public class Gateway {
         ForwardOrderMessage forwardOrderMessage = new ForwardOrderMessage(envelope.getMessage());
         TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardOrderMessage.getSymbol());
         LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
-                                                                                        forwardOrderMessage.getOrderType().name(),
-                                                                                        forwardOrderMessage.getQuantity(),
-                                                                                        forwardOrderMessage.getSymbol(),
-                                                                                        forwardOrderMessage.getPrice());
+                forwardOrderMessage.getOrderType().name(),
+                forwardOrderMessage.getQuantity(),
+                forwardOrderMessage.getSymbol(),
+                forwardOrderMessage.getPrice());
 
         try {
             matchingEngineComm.sendReliably(forwardOrderMessage, OrderConfirmationMessage.class);
