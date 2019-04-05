@@ -127,15 +127,19 @@ public class MatchingEngine {
         //update top of book
         if(restingBook.buyers.size()>0) {
             this.bidPrice = restingBook.buyers.get(0).getPrice();
+            this.bidQuantity = restingBook.buyers.get(0).getQuantity();
         }
         else{
             this.bidPrice=this.orignalBidPrice;
+            this.bidQuantity = 0;
         }
         if(restingBook.sellers.size()>0) {
             this.askPrice = restingBook.sellers.get(0).getPrice();
+            this.askQuantity = restingBook.sellers.get(0).getQuantity();
         }
         else{
             this.askPrice=originalAskPrice;
+            this.askQuantity = 0;
         }
         LOG.info("%s Received TopOfBookRequestMessage from Gateway",this.symbol);
         TopOfBookRequestMessage topOfBookRequestMessage = envelope.getMessage();
