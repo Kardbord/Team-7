@@ -53,7 +53,7 @@ public class ForwardOrderMessage extends Message {
     }
 
     public ForwardOrderMessage(SubmitOrderMessage orderMessage) {
-        super(MessageType.FORWARD_ORDER);
+        super(MessageType.FORWARD_ORDER, orderMessage.getConversationId());
         this.playerId = orderMessage.getPlayerId();
         this.orderType = orderMessage.getOrderType();
         this.quantity = orderMessage.getQuantity();
