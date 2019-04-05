@@ -36,8 +36,11 @@ public abstract class EnvelopeDispatcher {
         seenConversations.add(decodedMsg.getConversationId());
 
         List<Consumer<?>> methodsToDispatch = typeToConsumerMap.getOrDefault(decodedMsg.getClass(), new ArrayList<>());
-        for(Consumer consumer : methodsToDispatch){
-            consumer.accept(new Envelope<>(decodedMsg, envelope.getSourceInetSocketAddress()));
+
+        synchronized (methodsToDispatch) {
+            for (Consumer consumer : methodsToDispatch) {
+                consumer.accept(new Envelope<>(decodedMsg, envelope.getSourceInetSocketAddress()));
+            }
         }
     }
 }
