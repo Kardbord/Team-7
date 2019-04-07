@@ -26,7 +26,7 @@ public class Gateway {
      */
     private final static int TOP_OF_BOOK_BROADCAST_RATE = 1500;
 
-    private final static int PORT = 2000;
+    public final static int PORT = 2000;
 
     private UdpCommunicator udpCommunicator;
 
@@ -48,11 +48,11 @@ public class Gateway {
      */
     private ConcurrentHashMap<String, TopOfBookEntry> symbolToTopOfBookMap;
 
-    public Gateway() throws IOException {
+    public Gateway(UdpCommunicator udpCommunicator) throws IOException {
         this.symbolToMatchingEngineMap = new ConcurrentHashMap<>();
         this.idToPlayerDetailMap = new ConcurrentHashMap<>();
         this.symbolToTopOfBookMap = new ConcurrentHashMap<>();
-        this.udpCommunicator = new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress("0.0.0.0", PORT));
+        this.udpCommunicator = udpCommunicator;
         initMatchingEngineMessageListeners();
         initUdpDispatcherListeners();
         initTopOfBookRefresh();

@@ -1,5 +1,6 @@
 package matchingengine;
 
+import communicators.UdpCommunicator;
 import gateway.Gateway;
 import messages.ForwardCancelMessage;
 import messages.ForwardOrderMessage;
@@ -8,10 +9,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
+import java.util.Date;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class MatchingEngineTest {
     String symbol="GOOG";
@@ -23,14 +29,16 @@ public class MatchingEngineTest {
     //Tests cannot be run concurrently at the moment, they have to be run individually
 
     @Before
-    public void setUp(){
+    public void setUp() {
         try {
-            this.gateway = new Gateway();
+            this.gateway = new Gateway(new UdpCommunicator(
+                    DatagramChannel.open(),
+                    new InetSocketAddress("0.0.0.0", Gateway.PORT)
+            ));
         } catch (IOException e) {
             e.printStackTrace();
         }
         victim=new MatchingEngine(symbol,bidPrice,askPrice);
-
     }
 
     @After

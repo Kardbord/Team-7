@@ -1,13 +1,21 @@
 package gateway;
 
+import communicators.UdpCommunicator;
+
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.util.*;
 
 public class App {
 
     public static void main(String[] args) throws IOException {
-
-        new Gateway();
+        new Gateway(
+                new UdpCommunicator(
+                        DatagramChannel.open(),
+                        new InetSocketAddress("0.0.0.0", Gateway.PORT)
+                )
+        );
         System.out.println("Gateway is listening.");
         System.out.println("Type Q to quit.");
 
