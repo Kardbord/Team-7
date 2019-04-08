@@ -8,8 +8,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.*;
-import java.nio.channels.DatagramChannel;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Gateway {
@@ -184,8 +185,6 @@ public class Gateway {
         LOG.info("Received RegisterMatchingEngineMessage from %s", envelope.getMessage().getSymbol());
         tcpCommunicator.send(new AckMessage(envelope.getMessage().getConversationId()));
         LOG.info("Sent AckMessage to %s", envelope.getMessage().getSymbol());
-        tcpCommunicator.sendReliably(new TopOfBookRequestMessage(), TopOfBookResponseMessage.class);
-        LOG.info("Sent TopOfBookRequestMessage to %s", envelope.getMessage().getSymbol());
     }
 
     private void updateTopOfBook(Envelope<TopOfBookResponseMessage> envelope) {
