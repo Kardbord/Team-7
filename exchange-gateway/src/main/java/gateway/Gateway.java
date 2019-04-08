@@ -249,21 +249,21 @@ public class Gateway {
 
     private void forwardOrder(Envelope<SubmitOrderMessage> envelope) {
         ForwardOrderMessage forwardOrderMessage = new ForwardOrderMessage(envelope.getMessage());
-        TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardOrderMessage.getSymbol());
-        LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
-                forwardOrderMessage.getOrderType().name(),
-                forwardOrderMessage.getQuantity(),
-                forwardOrderMessage.getSymbol(),
-                forwardOrderMessage.getPrice());
-
         try {
+            TcpCommunicator matchingEngineComm = symbolToMatchingEngineMap.get(forwardOrderMessage.getSymbol());
+            LOG.info("Player %d submitted a %s order for %d shares of %s at %d per share", forwardOrderMessage.getPlayerId(),
+                    forwardOrderMessage.getOrderType().name(),
+                    forwardOrderMessage.getQuantity(),
+                    forwardOrderMessage.getSymbol(),
+                    forwardOrderMessage.getPrice());
+
             matchingEngineComm.sendReliably(forwardOrderMessage, OrderConfirmationMessage.class);
-        } catch (IOException e) {
+        } catch (IOException | NullPointerException e) {
             String player = idToPlayerDetailMap.get(forwardOrderMessage.getPlayerId()).getName();
             String symbol = forwardOrderMessage.getSymbol();
             String buy_sell = forwardOrderMessage.getOrderType().name();
             short qty = forwardOrderMessage.getQuantity();
-            LOG.error("Failed to send ForwardOrderMessage. Order was placed by %s to %s %d shares of %s ->",
+            LOG.error("Failed to send ForwardOrderMessage. Order was placed by %s to %s %d shares of %s -> %s",
                     player,
                     buy_sell,
                     qty,
