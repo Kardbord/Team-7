@@ -67,7 +67,17 @@ public class MatchingEngine {
             //String address="ec2-34-216-105-242.us-west-2.compute.amazonaws.com";
             InetAddress address = InetAddress.getLocalHost();
             //TODO change address to IP
-            socket=new Socket(address,PORT);
+            while(socket == null || !socket.isConnected()) {
+                try {
+                    socket = new Socket(address, PORT);
+                } catch (IOException e) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
             tcpCommunicator=new TcpCommunicator(socket);
             initMessageListener();
             tcpCommunicator.sendReliably(registerMatchingEngineMessage, AckMessage.class);
