@@ -79,7 +79,7 @@ public class Controller {
         topOfBookMap.addListener(new MapChangeListener<String, TopOfBookEntry>() {
             @Override
             public void onChanged(Change<? extends String, ? extends TopOfBookEntry> change) {
-//                updateTopOfBook();
+                updateTopOfBook();
             }
         });
         portfolioMap = player.getPortfolioMap();

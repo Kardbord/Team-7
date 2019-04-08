@@ -4,61 +4,33 @@ package matchingengine;
 import communicators.Envelope;
 import communicators.TcpCommunicator;
 import messages.*;
+import messages.SubmitOrderMessage.OrderType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.*;
 
 public class MatchingEngine {
-    String symbol;
-    int bidPrice;
-    int orignalBidPrice;
-    short bidQuantity;
-    int askPrice;
-    int originalAskPrice;
-    short askQuantity;
-    short orderIdCounter;
+    private TreeSet<Order> asks = new TreeSet<>(Comparator.reverseOrder()); // sorted from high to low
+    private TreeSet<Order> bids = new TreeSet<>(); // sorted from low to high
+    private Map<Short, Order> orderIdToRestingOrderMap = new HashMap<>();
+
+    private String symbol;
+    private short orderIdCounter;
     private final static int PORT = 2000;
     private static final Logger LOG = LogManager.getFormatterLogger(MatchingEngine.class.getName());
-    boolean ackMessageReceived=false;
-    public RestingBook restingBook=new RestingBook();
-    public OrderHandler orderHandler;
     //TODO figure what we need the IP to be
     //private final static String IP = "127.0.0.1";
-    public Socket socket;
-    //made public for testing
-    public TcpCommunicator tcpCommunicator;
-    //sellers from cheapest to most expensive, buyers most expensive to cheapest
-
-//todo probs axe this constructor
-    public MatchingEngine(String symbol, int bidPrice,int askPrice){
-        this.symbol=symbol;
-        this.bidPrice=bidPrice;
-        this.orignalBidPrice=bidPrice;
-        this.askPrice=askPrice;
-        this.originalAskPrice=askPrice;
-        this.askQuantity=0;
-        orderIdCounter=0;
-        register();
-        this.orderHandler=new OrderHandler(this.restingBook,symbol,tcpCommunicator);
-        initMessageListener();
-    }
+    private Socket socket;
+    private TcpCommunicator tcpCommunicator;
 
     public MatchingEngine(String symbol){
-        this.symbol=symbol;
-        this.bidPrice=0;
-        this.orignalBidPrice=0;
-        this.askPrice=0;
-        this.originalAskPrice=0;
-        this.askQuantity=0;
-        this.bidQuantity=0;
-        orderIdCounter=0;
+        this.symbol = symbol;
         register();
-        this.orderHandler=new OrderHandler(this.restingBook,symbol,tcpCommunicator);
     }
-
 
     public void register(){
         RegisterMatchingEngineMessage registerMatchingEngineMessage = new RegisterMatchingEngineMessage(this.symbol);
@@ -82,13 +54,11 @@ public class MatchingEngine {
             initMessageListener();
             tcpCommunicator.sendReliably(registerMatchingEngineMessage, AckMessage.class);
             LOG.info("%s sent registerMatchingEngineMessage to Gateway",this.symbol);
-            //TODO wait for ack?
         }catch (IOException e) {
             LOG.error("Failure in %s constructor, couldn't send registerMatchingEngineMessage",
                     symbol, e.getMessage());
         }
     }
-
 
     public void initMessageListener(){
         tcpCommunicator.registerForDispatch(TopOfBookRequestMessage.class, this::sendTopOfBook);
@@ -100,61 +70,68 @@ public class MatchingEngine {
         new Thread(tcpCommunicator).start();
     }
 
-    private void cancelOrder(Envelope<ForwardCancelMessage> envelope) {
+    private synchronized void cancelOrder(Envelope<ForwardCancelMessage> envelope) {
         ForwardCancelMessage cancelOrderMessage = envelope.getMessage();
         short orderId=cancelOrderMessage.getOrderId();
         short playerId=cancelOrderMessage.getPlayerId();
-        short cancelledQuantity=0;
-        LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ",
-                this.symbol, orderId,playerId);
-        boolean done=false;
-        for(int i=0;i<restingBook.sellers.size()&&done==false;i++){
-            if(restingBook.sellers.get(i).getPlayerId()==playerId&&restingBook.sellers.get(i).getOrderID()==orderId){
-                cancelledQuantity=restingBook.sellers.get(i).getQuantity();
-                restingBook.sellers.remove(i);
-                done=true;
-            }
+        short cancelledQuantity = 0;
+
+        if(orderIdToRestingOrderMap.containsKey(orderId)){
+            Order restingOrderToCancel = orderIdToRestingOrderMap.get(orderId);
+            bids.remove(restingOrderToCancel);
+            asks.remove(restingOrderToCancel);
+            cancelledQuantity = restingOrderToCancel.getQuantity();
         }
-        for(int i=0;i<restingBook.buyers.size()&&done==false;i++){
-            if(restingBook.buyers.get(i).getPlayerId()==playerId&&restingBook.buyers.get(i).getOrderID()==orderId){
-                cancelledQuantity=restingBook.buyers.get(i).getQuantity();
-                restingBook.buyers.remove(i);
-                done=true;
-            }
-        }
-        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(cancelOrderMessage.getConversationId(), playerId,
-                orderId,cancelledQuantity,this.symbol);
+
+        LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ", symbol, orderId, playerId);
+
+        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(
+                cancelOrderMessage.getConversationId(),
+                playerId,
+                orderId,
+                cancelledQuantity,
+                symbol
+            );
         try {
             tcpCommunicator.send(cancelConfirmationMessage);
-            LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
+            LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d", symbol, orderId);
         } catch (IOException e) {
             LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",
                     symbol, e.getMessage());
         }
     }
 
-    private void sendTopOfBook(Envelope<TopOfBookRequestMessage> envelope) {
-        //update top of book
-        if(restingBook.buyers.size()>0) {
-            this.bidPrice = restingBook.buyers.get(0).getPrice();
-            this.bidQuantity = restingBook.buyers.get(0).getQuantity();
+    private synchronized void sendTopOfBook(Envelope<TopOfBookRequestMessage> envelope) {
+        int askPrice = !asks.isEmpty() ? asks.last().getPrice() : 0;
+        int bidPrice = !bids.isEmpty() ? bids.last().getPrice() : 0;
+
+        TopOfBookRequestMessage msg = envelope.getMessage();
+
+        short askQuantity = 0;
+        Iterator<Order> askIter = asks.descendingIterator();
+        while(askIter.hasNext()){
+            Order restingOrder = askIter.next();
+            if(restingOrder.getPrice() == askPrice){
+                askQuantity += restingOrder.getQuantity();
+            }else{
+                break;
+            }
         }
-        else{
-            this.bidPrice=this.orignalBidPrice;
-            this.bidQuantity = 0;
+
+        short bidQuantity = 0;
+        Iterator<Order> bidIter = bids.descendingIterator();
+        while(bidIter.hasNext()){
+            Order restingOrder = bidIter.next();
+            if(restingOrder.getPrice() == bidPrice){
+                bidQuantity += restingOrder.getQuantity();
+            }else{
+                break;
+            }
         }
-        if(restingBook.sellers.size()>0) {
-            this.askPrice = restingBook.sellers.get(0).getPrice();
-            this.askQuantity = restingBook.sellers.get(0).getQuantity();
-        }
-        else{
-            this.askPrice=originalAskPrice;
-            this.askQuantity = 0;
-        }
-        LOG.info("%s Received TopOfBookRequestMessage from Gateway",this.symbol);
-        TopOfBookRequestMessage topOfBookRequestMessage = envelope.getMessage();
-        TopOfBookResponseMessage topOfBookResponseMessage=new TopOfBookResponseMessage(topOfBookRequestMessage.getConversationId(), this.symbol,
-                this.bidPrice, this.bidQuantity,this.askPrice,this.askQuantity);
+
+        TopOfBookResponseMessage topOfBookResponseMessage = new TopOfBookResponseMessage(
+                msg.getConversationId(), symbol,
+                bidPrice, bidQuantity, askPrice, askQuantity);
         try {
             tcpCommunicator.send(topOfBookResponseMessage);
             LOG.info("%s sent topOfBookResponseMessage to Gateway",this.symbol);
@@ -164,57 +141,90 @@ public class MatchingEngine {
         }
     }
 
-    private void handleOrder(Envelope<ForwardOrderMessage> envelope){
+    private synchronized void handleOrder(Envelope<ForwardOrderMessage> envelope){
         LOG.info("Received ForwardOrderMessage from Gateway for player ID %d",
                 envelope.getMessage().getPlayerId());
-        orderHandler.handleOrder(envelope.getMessage());
-    }
 
-    //todo for testing, look into better way to do this one
-    public void cancelOrderTester(ForwardCancelMessage cancelOrderMessage){
-        short orderId=cancelOrderMessage.getOrderId();
-        short playerId=cancelOrderMessage.getPlayerId();
-        short cancelledQuantity=0;
-        LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ",
-                this.symbol, orderId,playerId);
-        boolean done=false;
-        for(int i=0;i<restingBook.sellers.size()&&done==false;i++){
-            if(restingBook.sellers.get(i).getPlayerId()==playerId&&restingBook.sellers.get(i).getOrderID()==orderId){
-                cancelledQuantity=restingBook.sellers.get(i).getQuantity();
-                restingBook.sellers.remove(i);
-                done=true;
-            }
+        ForwardOrderMessage msg = envelope.getMessage();
+
+        TreeSet<Order> orderBookToQuoteOn = new TreeSet<>();
+        TreeSet<Order> orderBookToExecuteAgainst = new TreeSet<>();
+
+        if(msg.getOrderType() == OrderType.SELL){
+            orderBookToQuoteOn = asks;
+            orderBookToExecuteAgainst = bids;
+        }else if(msg.getOrderType() == OrderType.BUY){
+            orderBookToQuoteOn = bids;
+            orderBookToExecuteAgainst = asks;
         }
-        for(int i=0;i<restingBook.buyers.size()&&done==false;i++){
-            if(restingBook.buyers.get(i).getPlayerId()==playerId&&restingBook.buyers.get(i).getOrderID()==orderId){
-                cancelledQuantity=restingBook.buyers.get(i).getQuantity();
-                restingBook.buyers.remove(i);
-                done=true;
+
+        short remainingQty = msg.getQuantity();
+
+        while(remainingQty > 0 && !orderBookToExecuteAgainst.isEmpty() && isMatchableOrder(orderBookToExecuteAgainst.last(), msg)){
+            Order restingOrder = orderBookToExecuteAgainst.last();
+            short executedQty = restingOrder.executeQty(remainingQty);
+
+            OrderConfirmationMessage restingOrderConfirmation = new OrderConfirmationMessage(
+                    UUID.randomUUID(),
+                    restingOrder.getPlayerId(),
+                    restingOrder.getOrderID(),
+                    executedQty,
+                    restingOrder.getQuantity(),
+                    msg.getPrice(), // price improvement (matching at submitted price rather than resting price to accommodate lapse in protocol)
+                    restingOrder.getSymbol()
+            );
+            try {
+                tcpCommunicator.send(restingOrderConfirmation);
+                LOG.info("%s sent OrderConfirmationMessage to Gateway for player ID %d", symbol, restingOrder.getPlayerId());
+            } catch (IOException e) {
+                LOG.info("Failed to send order confirmation to Player ID %d. Resting Order: %s ", restingOrder.getPlayerId(), restingOrder);
+                e.printStackTrace();
             }
+
+            if(restingOrder.getQuantity() == 0){
+                orderBookToExecuteAgainst.pollLast();
+                orderIdToRestingOrderMap.remove(restingOrder.getOrderID());
+            }
+
+            remainingQty -= executedQty;
         }
-        CancelConfirmationMessage cancelConfirmationMessage = new CancelConfirmationMessage(cancelOrderMessage.getConversationId(), playerId,
-                orderId,cancelledQuantity,this.symbol);
+
+        Order newRestingOrder = new Order(msg.getPlayerId(), msg.getOrderType(), remainingQty, msg.getPrice(), msg.getSymbol(), orderIdCounter++);
+
+        if(remainingQty > 0){
+            orderBookToQuoteOn.add(newRestingOrder);
+            orderIdToRestingOrderMap.put(newRestingOrder.getOrderID(), newRestingOrder);
+        }
+
+        OrderConfirmationMessage restingOrderConfirmation = new OrderConfirmationMessage(
+                msg.getConversationId(),
+                msg.getPlayerId(),
+                newRestingOrder.getOrderID(),
+                (short) (msg.getQuantity() - remainingQty),
+                newRestingOrder.getQuantity(),
+                msg.getPrice(),
+                newRestingOrder.getSymbol()
+        );
         try {
-            tcpCommunicator.send(cancelConfirmationMessage);
-            LOG.info("%s sent cancelConfirmationMessage to Gateway for order %d",this.symbol, orderId);
+            tcpCommunicator.send(restingOrderConfirmation);
+            LOG.info("%s sent OrderConfirmationMessage to Gateway for player ID %d", symbol, msg.getPlayerId());
         } catch (IOException e) {
-            LOG.error("Failure in %s ME while trying to send cancelConfirmationMessage to Gateway",
-                    symbol, e.getMessage());
+            LOG.info("Failed to send order confirmation to Player ID %d. Resting Order: %s ", newRestingOrder.getPlayerId(), newRestingOrder);
+            e.printStackTrace();
         }
-
     }
 
+    private boolean isMatchableOrder(Order restingOrder, ForwardOrderMessage msg) {
+        if(msg.getOrderType() == OrderType.SELL){
+            return restingOrder.getPrice() >= msg.getPrice();
+        }else if(msg.getOrderType() == OrderType.BUY){
+            return restingOrder.getPrice() <= msg.getPrice();
+        }
 
-
-
-
-
-
-
-
+        return false;
+    }
 
     public static void main(String[] args) {
         MatchingEngine matchingEngine=new MatchingEngine("GOOG");
     }
-
 }

@@ -2,6 +2,8 @@ package matchingengine;
 
 import messages.SubmitOrderMessage;
 
+import java.util.Objects;
+
 public class Order implements Comparable<Order> {
     private short orderID;
     private short playerId;
@@ -18,11 +20,36 @@ public class Order implements Comparable<Order> {
         this.symbol=symbol;
         this.orderID=orderID;
     }
-    public int compareTo(Order order2){
-        //TODO get this working right
-        int diff = this.price-order2.price;
-        return diff;
+    @Override
+    public int compareTo(Order other){
+        // primary sort by price
+        // secondary sort by orderId
+
+        if(price == other.price){
+            return orderID - other.orderID;
+        }
+
+        return price - other.price;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Order order = (Order) o;
+        return orderID == order.orderID &&
+                playerId == order.playerId &&
+                quantity == order.quantity &&
+                price == order.price &&
+                orderType == order.orderType &&
+                Objects.equals(symbol, order.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderID, playerId, orderType, quantity, price, symbol);
+    }
+
     public short getOrderID() {
         return orderID;
     }
@@ -71,4 +98,21 @@ public class Order implements Comparable<Order> {
         this.symbol = symbol;
     }
 
+    @Override
+    public String toString() {
+        return "Order{" +
+                "orderID=" + orderID +
+                ", playerId=" + playerId +
+                ", orderType=" + orderType +
+                ", quantity=" + quantity +
+                ", price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    public short executeQty(short qtyToExecuteAgainst) {
+        short executedQty = (short) Math.min(quantity, qtyToExecuteAgainst);
+        quantity -= executedQty;
+        return executedQty;
+    }
 }
