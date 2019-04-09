@@ -14,7 +14,7 @@ public class PortfolioEntry {
     public PortfolioEntry(String symbol, int positions, int equity) {
         this.symbol = symbol;
         this.positions = positions;
-        this.equity = equity;
+        this.equity = equity * positions;
     }
 
     public String getSymbol() {
@@ -46,11 +46,11 @@ public class PortfolioEntry {
     }
 
     public void updateEquity(int equity) {
-        this.equity += equity;
+        this.equity = equity * positions;
     }
 
     @Override
     public String toString() {
-        return String.format("%s:\t Shares:%d\t Equity:%d", symbol, positions, equity);
+        return String.format("%s:\t Shares: %d\t Equity: %d", symbol, positions, equity);
     }
 }

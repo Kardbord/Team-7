@@ -29,6 +29,8 @@ public class Controller {
     private OrderType orderType;
     private ObservableMap<String, TopOfBookEntry> topOfBookMap;
     private ObservableMap<String, PortfolioEntry> portfolioMap;
+//    private int quantity;
+//    private int price;
 
 
     @FXML private MenuItem quit;
@@ -39,7 +41,8 @@ public class Controller {
     @FXML private ListView<String> orderBookAsks;
     @FXML private ListView<String> orderBookBids;
     @FXML private ListView<String> symbolList;
-    @FXML private ListView<String> portfolio;
+    @FXML private ListView<String> portfolioList;
+    @FXML private ListView<String> restingOrdersList;
     @FXML private RadioButton buyBtn;
     @FXML private RadioButton sellBtn;
     @FXML private RadioButton cancelOrderBtn;
@@ -62,12 +65,16 @@ public class Controller {
         selectedSymbol = symbolList.getSelectionModel().getSelectedItem();
         symbolList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             selectedSymbol = newValue;
+            orderBookAsks.getItems().clear();
         });
         orderTypes.selectedToggleProperty().addListener(((obs_v, old_toggle, new_toggle) -> {
             if (orderTypes.getSelectedToggle() != null) {
                 setOrderType(new_toggle);
-                orderBookAsks.getItems().clear();
+                fillOrderInfo();
             }
+        }));
+        orderBookAsks.getSelectionModel().selectedItemProperty().addListener(((observable, oldVal, newVal) -> {
+            fillOrderInfo();
         }));
         orderType = OrderType.BUY;
     }
@@ -76,39 +83,24 @@ public class Controller {
     void initPlayer(String name, String server) throws IOException{
         this.player = new Player(name, new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0)), server);
         topOfBookMap = player.getTopOfBookMap();
-        topOfBookMap.addListener(new MapChangeListener<String, TopOfBookEntry>() {
-            @Override
-            public void onChanged(Change<? extends String, ? extends TopOfBookEntry> change) {
-                updateTopOfBook();
-            }
-        });
+        topOfBookMap.addListener((MapChangeListener<String, TopOfBookEntry>) change -> updateTopOfBook());
+
         portfolioMap = player.getPortfolioMap();
-        portfolioMap.addListener(new MapChangeListener<String, PortfolioEntry>() {
-            @Override
-            public void onChanged(Change<? extends String, ? extends PortfolioEntry> change) {
-                updatePortfolio();
-            }
+        portfolioMap.addListener((MapChangeListener<String, PortfolioEntry>) change -> {
+            updatePortfolio();
+            updateInfo();
         });
+
         symbols = player.getSymbolList();
-        symbols.addListener(new ListChangeListener<String>() {
-            @Override
-            public void onChanged(Change<? extends String> change) {
-                updateSymbols();
-            }
-        });
+        symbols.addListener((ListChangeListener<String>) change -> updateSymbols());
     }
 
     // This still needs work
     private void updateSymbols() {
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                symbols.forEach(s -> {
-                    if (!symbolList.getItems().contains(s))
-                        symbolList.getItems().add(s);
-                });
-            }
-        });
+        Platform.runLater(() -> symbols.forEach(s -> {
+            if (!symbolList.getItems().contains(s))
+                symbolList.getItems().add(s);
+        }));
 
     }
     void updateInfo() {
@@ -120,13 +112,16 @@ public class Controller {
     }
 
     private void updatePortfolio() {
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                portfolioMap.forEach((k,v) -> {
+        Platform.runLater(() -> {
+            try {
+                portfolioList.getItems().clear();
+                log.info("Updating Portfolio");
+                portfolioMap.forEach((k, v) -> {
                     log.info("%s -> %s", k, v.toString());
-                    symbolList.getItems().add(v.toString());
+                    portfolioList.getItems().add(v.toString());
                 });
+            } catch (NullPointerException e) {
+                log.error("Failed to update portfolio: %s", e.getMessage());
             }
         });
 
@@ -137,13 +132,12 @@ public class Controller {
         try {
             int price = Integer.parseInt(orderPrice.getText());
             int quantity = Integer.parseInt(orderQty.getText());
-            if (player.getCash() - price < 0) {
+            if (player.getCash() - (price * quantity) < 0) {
                 showAlert("Insufficient Funds", "You do not have enough funds to place this order");
             } else if (selectedSymbol == null ) {
                 showAlert("No symbol selected", "Please Select a Symbol");
             } else{
                 player.submitOrder((short) player.getPlayerId(), orderType, (short) quantity, price, selectedSymbol);
-                updateInfo();
             }
         } catch (NumberFormatException err) {
             showAlert("Invalid value entered ", err.getMessage());
@@ -161,16 +155,29 @@ public class Controller {
     }
 
     private void updateTopOfBook() {
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    orderBookAsks.getItems().add(topOfBookMap.get(selectedSymbol).toString());
-                } catch (NullPointerException e) {
-                    log.error(e.getMessage());
-                }
+        Platform.runLater(() -> {
+            try {
+                orderBookAsks.getItems().add(topOfBookMap.get(selectedSymbol).toString());
+            } catch (NullPointerException e) {
+                log.error(e.getMessage());
             }
         });
+    }
+
+    private void fillOrderInfo() {
+        int quantity = 0, price = 0;
+
+        if (orderType == OrderType.BUY) {
+            quantity = topOfBookMap.get(selectedSymbol).getAskQuantity();
+            price = topOfBookMap.get(selectedSymbol).getAskPrice();
+        } else if (orderType == OrderType.SELL) {
+            quantity = topOfBookMap.get(selectedSymbol).getBidQuantity();
+            price = topOfBookMap.get(selectedSymbol).getBidPrice();
+        } else {
+            // for cancelling an order
+        }
+        orderQty.setText(Integer.toString(quantity));
+        orderPrice.setText(Integer.toString(price));
     }
 
     private void showAlert(String header, String msg) {

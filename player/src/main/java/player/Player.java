@@ -118,13 +118,16 @@ public class Player {
     private void updatePortfolio(Envelope<ForwardOrderConfirmationMessage> env) {
         log.info("Order Confirmation received");
         ForwardOrderConfirmationMessage msg = env.getMessage();
-        if (!portfolio.containsKey(msg.getSymbol())) {
-            portfolio.put(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), msg.getExecutedQty(), msg.getPrice()));
-        } else {
-            PortfolioEntry entry = portfolio.get(msg.getSymbol());
-            entry.updatePositions(msg.getExecutedQty());
-            entry.updateEquity(msg.getPrice());
-        }
+        if (msg.getExecutedQty() > 0) {
+            if (!portfolio.containsKey(msg.getSymbol())) {
+                portfolio.put(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), msg.getExecutedQty(), msg.getPrice()));
+            } else {
+                PortfolioEntry entry = portfolio.get(msg.getSymbol());
+                entry.updatePositions(msg.getExecutedQty());
+                entry.updateEquity(msg.getPrice());
+                portfolio.put(msg.getSymbol(), entry);
+            }
+        } // else add to the resting orders list
     }
 
     private void updateTopOfBook(Envelope<TopOfBookNotificationMessage> env) {

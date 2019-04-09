@@ -19,7 +19,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<VBox prefHeight="669.0" prefWidth="1044.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
@@ -54,10 +54,12 @@
                   </RadioButton>
                   <RadioButton fx:id="sellBtn" layoutX="18.0" layoutY="320.0" mnemonicParsing="false" text="Sell" toggleGroup="$orderTypes" />
                   <RadioButton fx:id="cancelOrderBtn" layoutX="17.0" layoutY="357.0" mnemonicParsing="false" text="Cancel Order" toggleGroup="$orderTypes" />
-                  <TextField fx:id="orderQty" layoutX="19.0" layoutY="416.0" promptText="Quantity" />
-                  <Button fx:id="orderBtn" layoutX="66.0" layoutY="491.0" mnemonicParsing="false" style="-fx-background-color: #3f5f9f;" text="Submit" textFill="#f8f6f6" />
-                  <ListView fx:id="symbolList" layoutX="2.0" layoutY="37.0" prefHeight="231.0" prefWidth="220.0" />
-                  <TextField fx:id="orderPrice" layoutX="19.0" layoutY="449.0" promptText="Price" />
+                  <TextField fx:id="orderQty" layoutX="42.0" layoutY="419.0" promptText="Quantity" />
+                  <Button fx:id="orderBtn" layoutX="80.0" layoutY="491.0" mnemonicParsing="false" style="-fx-background-color: #3f5f9f;" text="Submit" textFill="#f8f6f6" />
+                  <ListView fx:id="symbolList" layoutX="2.0" layoutY="37.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="230.0" prefWidth="256.0" />
+                  <TextField fx:id="orderPrice" layoutX="43.0" layoutY="452.0" promptText="Price" />
+                  <Label layoutX="23.0" layoutY="423.0" text="#" />
+                  <Label layoutX="24.0" layoutY="457.0" text="\$" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
@@ -68,7 +70,8 @@
                         <Label fx:id="nameLabel" layoutX="114.0" layoutY="14.0" prefHeight="21.0" prefWidth="102.0" text="Name: " />
                         <Label fx:id="idLabel" layoutX="224.0" layoutY="14.0" prefHeight="21.0" prefWidth="59.0" text="ID: " />
                         <Label fx:id="cashLabel" layoutX="290.0" layoutY="14.0" prefHeight="21.0" prefWidth="136.0" text="Cash: " />
-                        <ListView fx:id="potfolio" layoutX="-4.0" layoutY="35.0" prefHeight="514.0" prefWidth="440.0" />
+                        <ListView fx:id="portfolioList" layoutX="-4.0" layoutY="35.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="281.0" prefWidth="515.0" />
+                        <ListView fx:id="restingOrdersList" layoutX="-4.0" layoutY="318.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="290.0" prefWidth="515.0" />
               </children>
             </AnchorPane>
           </content>
@@ -76,12 +79,12 @@
         <AnchorPane>
           <children>
             <Label alignment="CENTER" font="$x1" layoutX="56.0" layoutY="12.0" style="&#10;" text="Order Book" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-                  <ListView fx:id="orderBookAsks" editable="true" layoutX="-1.0" layoutY="33.0" prefHeight="514.0" prefWidth="221.0" />
+                  <ListView fx:id="orderBookAsks" editable="true" layoutX="-1.0" layoutY="33.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="589.0" prefWidth="256.0" />
           </children>
         </AnchorPane>
       </items>
     </SplitPane>
-    <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
+    <HBox id="HBox" alignment="CENTER_LEFT" prefHeight="0.0" prefWidth="959.0" spacing="5.0" VBox.vgrow="NEVER">
       <children>
         <Label maxHeight="1.7976931348623157E308" maxWidth="-1.0" HBox.hgrow="ALWAYS">
           <font>
