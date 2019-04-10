@@ -23,7 +23,7 @@ public abstract class Message {
     }
 
     public static Message decode(byte[] messageBytes) {
-        if(messageBytes.length < 2) {
+        if (messageBytes.length < 2) {
             throw new IllegalArgumentException();
         }
 
@@ -31,7 +31,7 @@ public abstract class Message {
 
         MessageType messageType = decoder.decodeMessageType();
 
-        switch(messageType){
+        switch (messageType) {
             case REGISTER_PLAYER:
                 return RegisterPlayerMessage.decode(messageBytes);
             case PLAYER_REGISTERED:
@@ -62,6 +62,8 @@ public abstract class Message {
                 return TopOfBookRequestMessage.decode(messageBytes);
             case TOP_OF_BOOK_RESPONSE:
                 return TopOfBookResponseMessage.decode(messageBytes);
+            case SCOREBOARD:
+                return ScoreboardMessage.decode(messageBytes);
             default:
                 throw new IllegalArgumentException();
         }
@@ -105,6 +107,14 @@ public abstract class Message {
             return encodeString(uuid.toString());
         }
 
+        public Encoder encodeFloat(float value) throws IOException {
+            ByteBuffer buffer = ByteBuffer.allocate(Float.BYTES);
+            buffer.order(ByteOrder.BIG_ENDIAN);
+            buffer.putFloat(value);
+            byteArrayOutputStream.write(buffer.array());
+            return this;
+        }
+
         public Encoder encodeShort(short value) throws IOException {
             ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES);
             buffer.order(ByteOrder.BIG_ENDIAN);
@@ -135,8 +145,8 @@ public abstract class Message {
         }
 
         public Encoder encodeString(String value) throws IOException {
-            if (value==null)
-                value="";
+            if (value == null)
+                value = "";
 
             byte[] textBytes = value.getBytes(Charset.forName("UTF-16BE"));
             encodeShort((short) (textBytes.length));
@@ -178,6 +188,10 @@ public abstract class Message {
             return byteBuffer.getLong();
         }
 
+        public float decodeFloat() {
+            return byteBuffer.getFloat();
+        }
+
         public byte decodeByte() {
             return byteBuffer.get();
         }
@@ -213,6 +227,7 @@ public abstract class Message {
         TOP_OF_BOOK_NOTIFICATION,
         TOP_OF_BOOK_REQUEST,
         TOP_OF_BOOK_RESPONSE,
+        SCOREBOARD,
         ;
 
         public short toShort() {
