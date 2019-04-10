@@ -20,6 +20,7 @@ public class OrderConfirmationMessageTest {
         short expectedRestingQty = 5;
         int expectedPrice = 6;
         String expectedSymbol = "NVDA";
+        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -30,11 +31,12 @@ public class OrderConfirmationMessageTest {
                 .encodeShort(expectedRestingQty)
                 .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
+                .encodeByte(expectedOrderType.toByte())
                 .toByteArray();
 
         byte[] actualMessageBytes =
                 new OrderConfirmationMessage(expectedUUID, expectedPlayerId, expectedOrderId,
-                        expectedExecutedQty, expectedRestingQty, expectedPrice, expectedSymbol).encode();
+                        expectedExecutedQty, expectedRestingQty, expectedPrice, expectedSymbol, expectedOrderType).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
     }
@@ -49,6 +51,7 @@ public class OrderConfirmationMessageTest {
         short expectedRestingQty = 5;
         int expectedPrice = 6;
         String expectedSymbol = "NVDA";
+        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -59,6 +62,7 @@ public class OrderConfirmationMessageTest {
                 .encodeShort(expectedRestingQty)
                 .encodeInt(expectedPrice)
                 .encodeString(expectedSymbol)
+                .encodeByte(expectedOrderType.toByte())
                 .toByteArray();
 
         OrderConfirmationMessage victim = OrderConfirmationMessage.decode(messageBytes);
@@ -70,5 +74,6 @@ public class OrderConfirmationMessageTest {
         assertEquals(expectedRestingQty, victim.getRestingQty());
         assertEquals(expectedPrice, victim.getPrice());
         assertEquals(expectedSymbol, victim.getSymbol());
+        assertEquals(expectedOrderType, victim.getOrderType());
     }
 }

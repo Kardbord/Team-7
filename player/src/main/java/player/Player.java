@@ -25,9 +25,10 @@ public class Player {
     private ObservableList<String> symbolList;
     private ObservableMap<String, TopOfBookEntry> topOfBookMap;
     private ObservableMap<String, PortfolioEntry> portfolio;
+    private ObservableMap<Short, ForwardOrderConfirmationMessage> restingOrdersMap;
 
     private String name;
-    private int playerId;
+    private short playerId;
     private int cash;
 
     public Player(String name, UdpCommunicator udpCommunicator) throws IOException {
@@ -52,6 +53,7 @@ public class Player {
         this.udpCommunicator = udpCommunicator;
         this.topOfBookMap = FXCollections.observableHashMap();
         this.portfolio = FXCollections.observableHashMap();
+        this.restingOrdersMap = FXCollections.observableHashMap();
         this.symbolList = FXCollections.observableArrayList();
         initMessageListeners();
         registerPlayer();
@@ -64,6 +66,7 @@ public class Player {
         udpCommunicator.registerForDispatch(PlayerRegisteredMessage.class, this::updateRegisteredPlayer);
         udpCommunicator.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
         udpCommunicator.registerForDispatch(ForwardOrderConfirmationMessage.class, this::updatePortfolio);
+        udpCommunicator.registerForDispatch(ForwardCancelConfirmationMessage.class, this::updateRestingOrders);
         new Thread(udpCommunicator).start();
         log.info("Initialized PlayerRegisteredListener");
         log.info("Initialized TopOfBookNotificationListener");
@@ -102,6 +105,20 @@ public class Player {
         }
     }
 
+    public void cancelOrder(short orderId, String symbol) {
+        log.info("Player %d submitted a cancel message for OrderId %d for Symbol %s", playerId, orderId, symbol);
+        try {
+            this.udpCommunicator.sendReliably(
+                    new CancelOrderMessage(playerId, orderId, symbol),
+                    this.serverSocketAddress.getAddress(),
+                    this.serverSocketAddress.getPort(),
+                    ForwardCancelConfirmationMessage.class
+            );
+        } catch (IOException e) {
+            log.error("Failed to send cancel order: %s", e.getMessage());
+        }
+    }
+
     /**
      * Method that is called when a PlayerRegistered Message is received.
      *
@@ -127,7 +144,13 @@ public class Player {
                 entry.updateEquity(msg.getPrice());
                 portfolio.put(msg.getSymbol(), entry);
             }
-        } // else add to the resting orders list
+        }
+
+        if (msg.getRestingQty() == 0) {
+            restingOrdersMap.remove(msg.getOrderId());
+        }else{
+            restingOrdersMap.put(msg.getOrderId(), msg);
+        }
     }
 
     private void updateTopOfBook(Envelope<TopOfBookNotificationMessage> env) {
@@ -146,11 +169,16 @@ public class Player {
         }
     }
 
+    private void updateRestingOrders(Envelope<ForwardCancelConfirmationMessage> envelope) {
+        log.info("Received ForwardCancelConfirmation: " + envelope.getMessage());
+        restingOrdersMap.remove(envelope.getMessage().getOrderId());
+    }
+
     public String getName() {
         return name;
     }
 
-    public int getPlayerId() {
+    public short getPlayerId() {
         return playerId;
     }
 
@@ -158,7 +186,7 @@ public class Player {
         return cash;
     }
 
-    public void setPlayerId(int playerId) {
+    public void setPlayerId(short playerId) {
         this.playerId = playerId;
     }
 
@@ -181,5 +209,9 @@ public class Player {
 
     public ObservableList<String> getSymbolList() {
         return symbolList;
+    }
+
+    public ObservableMap<Short, ForwardOrderConfirmationMessage> getRestingOrdersMap() {
+        return restingOrdersMap;
     }
 }

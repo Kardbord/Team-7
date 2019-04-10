@@ -8,6 +8,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
+import messages.ForwardOrderConfirmationMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import player.Player;
@@ -16,6 +17,8 @@ import portfolio.PortfolioEntry;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 import messages.SubmitOrderMessage.OrderType;
 
@@ -29,6 +32,9 @@ public class Controller {
     private OrderType orderType;
     private ObservableMap<String, TopOfBookEntry> topOfBookMap;
     private ObservableMap<String, PortfolioEntry> portfolioMap;
+    private ObservableMap<Short, ForwardOrderConfirmationMessage> restingOrdersMap;
+    private List<ForwardOrderConfirmationMessage> restingOrders = new ArrayList<>();
+    private ForwardOrderConfirmationMessage selectedRestingOrder;
 //    private int quantity;
 //    private int price;
 
@@ -38,6 +44,9 @@ public class Controller {
     @FXML private Label nameLabel;
     @FXML private Label idLabel;
     @FXML private Label cashLabel;
+    @FXML private Label qtyLabel;
+    @FXML private Label priceLabel;
+    @FXML private Label orderIdLabel;
     @FXML private ListView<String> orderBookAsks;
     @FXML private ListView<String> orderBookBids;
     @FXML private ListView<String> symbolList;
@@ -48,6 +57,7 @@ public class Controller {
     @FXML private RadioButton cancelOrderBtn;
     @FXML private TextField orderQty;
     @FXML private TextField orderPrice;
+    @FXML private TextField cancelOrderId;
     @FXML private Button orderBtn;
     @FXML private ToggleGroup orderTypes;
 
@@ -77,6 +87,16 @@ public class Controller {
             fillOrderInfo();
         }));
         orderType = OrderType.BUY;
+
+        restingOrdersList.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> {
+            int selectedIdx = restingOrdersList.getSelectionModel().getSelectedIndex();
+            if(selectedIdx == -1){
+                selectedRestingOrder = null;
+            }else {
+                selectedRestingOrder = restingOrders.get(selectedIdx);
+                cancelOrderId.setText(selectedRestingOrder.getOrderId() + "");
+            }
+        });
     }
 
 
@@ -93,6 +113,9 @@ public class Controller {
 
         symbols = player.getSymbolList();
         symbols.addListener((ListChangeListener<String>) change -> updateSymbols());
+
+        restingOrdersMap = player.getRestingOrdersMap();
+        restingOrdersMap.addListener((MapChangeListener<Short, ForwardOrderConfirmationMessage>) change -> updateRestingOrders());
     }
 
     // This still needs work
@@ -130,6 +153,11 @@ public class Controller {
     @FXML
     private void submitOrder(ActionEvent e) {
         try {
+            if (orderType == null) {
+                short orderId = Short.parseShort(cancelOrderId.getText());
+                player.cancelOrder(orderId, selectedSymbol);
+                return;
+            }
             int price = Integer.parseInt(orderPrice.getText());
             int quantity = Integer.parseInt(orderQty.getText());
             if (player.getCash() - (price * quantity) < 0) {
@@ -149,8 +177,28 @@ public class Controller {
     private void setOrderType(Toggle selected) {
         if (selected == buyBtn) {
             orderType = OrderType.BUY;
+            orderPrice.setVisible(true);
+            orderQty.setVisible(true);
+            priceLabel.setVisible(true);
+            qtyLabel.setVisible(true);
+            orderIdLabel.setVisible(false);
+            cancelOrderId.setVisible(false);
         } else if (selected == sellBtn) {
             orderType = OrderType.SELL;
+            orderPrice.setVisible(true);
+            orderQty.setVisible(true);
+            priceLabel.setVisible(true);
+            qtyLabel.setVisible(true);
+            orderIdLabel.setVisible(false);
+            cancelOrderId.setVisible(false);
+        } else if (selected == cancelOrderBtn) {
+            orderType = null;
+            orderPrice.setVisible(false);
+            orderQty.setVisible(false);
+            priceLabel.setVisible(false);
+            qtyLabel.setVisible(false);
+            orderIdLabel.setVisible(true);
+            cancelOrderId.setVisible(true);
         }
     }
 
@@ -173,11 +221,25 @@ public class Controller {
         } else if (orderType == OrderType.SELL) {
             quantity = topOfBookMap.get(selectedSymbol).getBidQuantity();
             price = topOfBookMap.get(selectedSymbol).getBidPrice();
-        } else {
-            // for cancelling an order
         }
         orderQty.setText(Integer.toString(quantity));
         orderPrice.setText(Integer.toString(price));
+    }
+
+    private void updateRestingOrders() {
+        Platform.runLater(() -> {
+            try {
+                // could optimize to only remove or add the changed item
+                ObservableList<String> items = restingOrdersList.getItems();
+                items.clear();
+                restingOrders = new ArrayList<>(restingOrdersMap.values());
+                for(ForwardOrderConfirmationMessage msg : restingOrders) {
+                    items.add(msg.getOrderType() + " OrderId: " + msg.getOrderId() + " RestingQty: " + msg.getRestingQty() + " RestingPrice: $" + msg.getPrice());
+                }
+            } catch (NullPointerException e) {
+                log.error(e.getMessage());
+            }
+        });
     }
 
     private void showAlert(String header, String msg) {

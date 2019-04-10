@@ -12,9 +12,11 @@ public class OrderConfirmationMessage extends Message {
     private short restingQty;
     private int price;
     private String symbol;
+    private SubmitOrderMessage.OrderType orderType;
+
 
     public OrderConfirmationMessage(UUID uuid, short playerId, short orderId,
-                                    short executedQty, short restingQty, int price, String symbol) {
+                                    short executedQty, short restingQty, int price, String symbol, SubmitOrderMessage.OrderType orderType) {
         super(MessageType.ORDER_CONFIRMATION, uuid);
         this.playerId=playerId;
         this.orderId = orderId;
@@ -22,6 +24,7 @@ public class OrderConfirmationMessage extends Message {
         this.restingQty = restingQty;
         this.price = price;
         this.symbol = symbol;
+        this.orderType = orderType;
     }
 
     @Override
@@ -69,8 +72,9 @@ public class OrderConfirmationMessage extends Message {
         short restingQty = decoder.decodeShort();
         int price = decoder.decodeInt();
         String symbol = decoder.decodeString();
+        SubmitOrderMessage.OrderType orderType = SubmitOrderMessage.OrderType.getOrderTypeFromByte(decoder.decodeByte());
 
-        return new OrderConfirmationMessage(uuid, playerId, orderId, executedQty,restingQty, price, symbol);
+        return new OrderConfirmationMessage(uuid, playerId, orderId, executedQty,restingQty, price, symbol, orderType);
     }
 
     @Override
@@ -84,6 +88,7 @@ public class OrderConfirmationMessage extends Message {
                 .encodeShort(restingQty)
                 .encodeInt(price)
                 .encodeString(symbol)
+                .encodeByte(orderType.toByte())
                 .toByteArray();
     }
 
@@ -109,5 +114,9 @@ public class OrderConfirmationMessage extends Message {
 
     public String getSymbol() {
         return symbol;
+    }
+
+    public SubmitOrderMessage.OrderType getOrderType() {
+        return orderType;
     }
 }

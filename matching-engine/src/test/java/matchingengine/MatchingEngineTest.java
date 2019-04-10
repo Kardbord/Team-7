@@ -29,7 +29,7 @@ public class MatchingEngineTest {
 
         victim.handleOrder(restingOrderEnvelope);
 
-        OrderConfirmationMessage expectedRestingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), restingPlayerId, (short)0, (short)0, restingQty, restingPrice, symbol);
+        OrderConfirmationMessage expectedRestingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), restingPlayerId, (short)0, (short)0, restingQty, restingPrice, symbol, restingOrder.getOrderType());
 
         verify(tcpCommunicator).send(expectedRestingPlayerOrderConfirmation);
 
@@ -41,8 +41,8 @@ public class MatchingEngineTest {
 
         victim.handleOrder(incomingOrderEnvelope);
 
-        expectedRestingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), restingPlayerId, (short)0, incomingQty, incomingQty, incomingPrice, symbol);
-        OrderConfirmationMessage expectedIncomingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), incomingPlayerId, (short)1, incomingQty, (short)0, incomingPrice, symbol);
+        expectedRestingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), restingPlayerId, (short)0, incomingQty, incomingQty, incomingPrice, symbol, SubmitOrderMessage.OrderType.BUY);
+        OrderConfirmationMessage expectedIncomingPlayerOrderConfirmation = new OrderConfirmationMessage(UUID.randomUUID(), incomingPlayerId, (short)1, incomingQty, (short)0, incomingPrice, symbol, incomingOrder.getOrderType());
 
         verify(tcpCommunicator).send(expectedRestingPlayerOrderConfirmation);
         verify(tcpCommunicator).send(expectedIncomingPlayerOrderConfirmation);

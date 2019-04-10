@@ -16,7 +16,13 @@ import java.util.*;
 
 public class MatchingEngine {
     private TreeSet<Order> asks = new TreeSet<>(Comparator.reverseOrder()); // sorted from high to low
-    private TreeSet<Order> bids = new TreeSet<>(); // sorted from low to high
+    private TreeSet<Order> bids = new TreeSet<>((o1, o2) -> {
+        if(o1.getPrice() == o2.getPrice()){
+            return o2.getOrderID() - o1.getOrderID();
+        }
+
+        return o1.getPrice() - o2.getPrice();
+    }); // sorted from low to high
     private Map<Short, Order> orderIdToRestingOrderMap = new HashMap<>();
 
     private String symbol;
@@ -64,6 +70,7 @@ public class MatchingEngine {
             bids.remove(restingOrderToCancel);
             asks.remove(restingOrderToCancel);
             cancelledQuantity = restingOrderToCancel.getQuantity();
+            orderIdToRestingOrderMap.remove(orderId);
         }
 
         LOG.info("%s received ForwardCancelMessage from gateway for order %d from player %d ", symbol, orderId, playerId);
@@ -154,7 +161,8 @@ public class MatchingEngine {
                     executedQty,
                     restingOrder.getQuantity(),
                     msg.getPrice(), // price improvement (matching at submitted price rather than resting price to accommodate lapse in protocol)
-                    restingOrder.getSymbol()
+                    restingOrder.getSymbol(),
+                    restingOrder.getOrderType()
             );
             try {
                 tcpCommunicator.send(restingOrderConfirmation);
@@ -186,7 +194,8 @@ public class MatchingEngine {
                 (short) (msg.getQuantity() - remainingQty),
                 newRestingOrder.getQuantity(),
                 msg.getPrice(),
-                newRestingOrder.getSymbol()
+                newRestingOrder.getSymbol(),
+                msg.getOrderType()
         );
         try {
             tcpCommunicator.send(restingOrderConfirmation);

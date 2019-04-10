@@ -11,14 +11,16 @@ public class ForwardOrderConfirmationMessage extends Message {
     private short executedQty;
     private short restingQty;
     private int price;
+    private SubmitOrderMessage.OrderType orderType;
 
-    public ForwardOrderConfirmationMessage(UUID uuid, short orderId, String symbol, short executedQty, short restingQty, int price) {
+    public ForwardOrderConfirmationMessage(UUID uuid, short orderId, String symbol, short executedQty, short restingQty, int price, SubmitOrderMessage.OrderType orderType) {
         super(MessageType.FWD_ORDER_CONF, uuid);
         this.orderId = orderId;
         this.symbol = symbol;
         this.executedQty = executedQty;
         this.restingQty = restingQty;
         this.price = price;
+        this.orderType = orderType;
     }
 
     public ForwardOrderConfirmationMessage(OrderConfirmationMessage orderConfirmationMessage) {
@@ -28,6 +30,7 @@ public class ForwardOrderConfirmationMessage extends Message {
         this.executedQty = orderConfirmationMessage.getExecutedQty();
         this.restingQty = orderConfirmationMessage.getRestingQty();
         this.price = orderConfirmationMessage.getPrice();
+        this.orderType = orderConfirmationMessage.getOrderType();
     }
 
     @Override
@@ -73,8 +76,9 @@ public class ForwardOrderConfirmationMessage extends Message {
         short executedQty = decoder.decodeShort();
         short restingQty = decoder.decodeShort();
         int price = decoder.decodeInt();
+        SubmitOrderMessage.OrderType orderType = SubmitOrderMessage.OrderType.getOrderTypeFromByte(decoder.decodeByte());
 
-        return new ForwardOrderConfirmationMessage(uuid, orderId, symbol, executedQty, restingQty, price);
+        return new ForwardOrderConfirmationMessage(uuid, orderId, symbol, executedQty, restingQty, price, orderType);
     }
 
     @Override
@@ -87,6 +91,7 @@ public class ForwardOrderConfirmationMessage extends Message {
                 .encodeShort(executedQty)
                 .encodeShort(restingQty)
                 .encodeInt(price)
+                .encodeByte(orderType.toByte())
                 .toByteArray();
     }
 
@@ -110,4 +115,7 @@ public class ForwardOrderConfirmationMessage extends Message {
         return price;
     }
 
+    public SubmitOrderMessage.OrderType getOrderType() {
+        return orderType;
+    }
 }

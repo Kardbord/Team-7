@@ -23,7 +23,7 @@ public class PlayerTest {
     public void testPlayerConstructor() throws IOException {
         String expectedName = "John";
         String expectedServerAddress = "127.0.0.1";
-        int expectedPlayerId = 42;
+        short expectedPlayerId = 42;
         int expectedCash = 1000;
         UdpCommunicator udpCommunicator = mock(UdpCommunicator.class);
         InetAddress expectedInetAddress = new InetSocketAddress(expectedServerAddress, Utils.PORT).getAddress();
@@ -64,7 +64,7 @@ public class PlayerTest {
     public void testGetters() throws IOException {
         String expectedName = "John";
         String expectedServer = "127.0.0.1";
-        int expectedPlayerId = 42;
+        short expectedPlayerId = 42;
         int expectedCash = 1000;
         UdpCommunicator udpCommunicator = mock(UdpCommunicator.class);
 

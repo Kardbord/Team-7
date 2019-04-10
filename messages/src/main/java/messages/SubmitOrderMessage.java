@@ -119,6 +119,10 @@ public class SubmitOrderMessage extends Message {
         BUY,
         ;
 
+        @Override
+        public String toString() {
+            return this == SELL ? "SELL" : "BUY";
+        }
 
         public byte toByte() {
             return (byte) this.ordinal();

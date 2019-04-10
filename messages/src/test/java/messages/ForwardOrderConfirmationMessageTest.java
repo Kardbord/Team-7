@@ -18,6 +18,7 @@ public class ForwardOrderConfirmationMessageTest {
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
         int expectedPrice = 4;
+        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -27,11 +28,12 @@ public class ForwardOrderConfirmationMessageTest {
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
                 .encodeInt(expectedPrice)
+                .encodeByte(expectedOrderType.toByte())
                 .toByteArray();
 
         byte[] actualMessageBytes =
                 new ForwardOrderConfirmationMessage(expectedUUID, expectedOrderId, expectedSymbol, expectedExecutedQty,
-                        expectedRestingQty, expectedPrice).encode();
+                        expectedRestingQty, expectedPrice, expectedOrderType).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
 
@@ -43,7 +45,8 @@ public class ForwardOrderConfirmationMessageTest {
                         expectedExecutedQty,
                         expectedRestingQty,
                         expectedPrice,
-                        expectedSymbol
+                        expectedSymbol,
+                        expectedOrderType
                 )
         ).encode();
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
@@ -59,6 +62,7 @@ public class ForwardOrderConfirmationMessageTest {
         short expectedExecutedQty = 2;
         short expectedRestingQty = 3;
         int expectedPrice = 4;
+        SubmitOrderMessage.OrderType expectedOrderType = SubmitOrderMessage.OrderType.BUY;
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -68,6 +72,7 @@ public class ForwardOrderConfirmationMessageTest {
                 .encodeShort(expectedExecutedQty)
                 .encodeShort(expectedRestingQty)
                 .encodeInt(expectedPrice)
+                .encodeByte(expectedOrderType.toByte())
                 .toByteArray();
 
         ForwardOrderConfirmationMessage victim = ForwardOrderConfirmationMessage.decode(messageBytes);
@@ -78,5 +83,6 @@ public class ForwardOrderConfirmationMessageTest {
         assertEquals(expectedExecutedQty, victim.getExecutedQty());
         assertEquals(expectedRestingQty, victim.getRestingQty());
         assertEquals(expectedPrice, victim.getPrice());
+        assertEquals(expectedOrderType, victim.getOrderType());
     }
 }
