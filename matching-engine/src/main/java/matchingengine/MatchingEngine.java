@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class MatchingEngine {
@@ -22,37 +23,19 @@ public class MatchingEngine {
     private short orderIdCounter;
     private final static int PORT = 2000;
     private static final Logger LOG = LogManager.getFormatterLogger(MatchingEngine.class.getName());
-    //TODO figure what we need the IP to be
-    //private final static String IP = "127.0.0.1";
-    private Socket socket;
     private TcpCommunicator tcpCommunicator;
 
-    public MatchingEngine(String symbol){
+    public MatchingEngine(String symbol, TcpCommunicator tcpCommunicator){
         this.symbol = symbol;
+        this.tcpCommunicator = tcpCommunicator;
+        initMessageListeners();
         register();
     }
 
     public void register(){
         RegisterMatchingEngineMessage registerMatchingEngineMessage = new RegisterMatchingEngineMessage(this.symbol);
         try {
-            // TODO: change this string to the appropriate AWS public DNS
-            //String address="ec2-34-216-105-242.us-west-2.compute.amazonaws.com";
-            InetAddress address = InetAddress.getLocalHost();
-            //TODO change address to IP
-            while(socket == null || !socket.isConnected()) {
-                try {
-                    socket = new Socket(address, PORT);
-                } catch (IOException e) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            }
-            tcpCommunicator=new TcpCommunicator(socket);
-            initMessageListener();
-            tcpCommunicator.sendReliably(registerMatchingEngineMessage, AckMessage.class);
+            tcpCommunicator.sendReliably(registerMatchingEngineMessage, AckMessage.class, 10, 1000);
             LOG.info("%s sent registerMatchingEngineMessage to Gateway",this.symbol);
         }catch (IOException e) {
             LOG.error("Failure in %s constructor, couldn't send registerMatchingEngineMessage",
@@ -60,7 +43,7 @@ public class MatchingEngine {
         }
     }
 
-    public void initMessageListener(){
+    public void initMessageListeners(){
         tcpCommunicator.registerForDispatch(TopOfBookRequestMessage.class, this::sendTopOfBook);
         LOG.info("%s Initialized TopOfBookRequestMessage listener",this.symbol);
         tcpCommunicator.registerForDispatch(ForwardOrderMessage.class, this::handleOrder);
@@ -141,7 +124,7 @@ public class MatchingEngine {
         }
     }
 
-    private synchronized void handleOrder(Envelope<ForwardOrderMessage> envelope){
+    synchronized void handleOrder(Envelope<ForwardOrderMessage> envelope){
         LOG.info("Received ForwardOrderMessage from Gateway for player ID %d",
                 envelope.getMessage().getPlayerId());
 
@@ -224,7 +207,24 @@ public class MatchingEngine {
         return false;
     }
 
-    public static void main(String[] args) {
-        MatchingEngine matchingEngine=new MatchingEngine("GOOG");
+    public static void main(String[] args) throws UnknownHostException {
+        // TODO: change this string to the appropriate AWS public DNS
+//        String address = "ec2-34-216-105-242.us-west-2.compute.amazonaws.com";
+        //TODO change address to address above if using AWS
+        InetAddress address = InetAddress.getLocalHost();
+        Socket socket = null;
+        while(socket == null || !socket.isConnected()) {
+            try {
+                socket = new Socket(address, PORT);
+            } catch (IOException e) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        TcpCommunicator tcpCommunicator=new TcpCommunicator(socket);
+        MatchingEngine matchingEngine=new MatchingEngine("GOOG", tcpCommunicator);
     }
 }
