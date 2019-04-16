@@ -97,31 +97,36 @@ public class MatchingEngine {
 
         TopOfBookRequestMessage msg = envelope.getMessage();
 
-        short askQuantity = 0;
+        List<TopOfBookResponseMessage.PriceQuantityPair> asksList = new ArrayList<>();
+        asksList.add(new TopOfBookResponseMessage.PriceQuantityPair(askPrice, (short)0));
+
         Iterator<Order> askIter = asks.descendingIterator();
-        while(askIter.hasNext()){
+        while(askIter.hasNext() && asksList.size() < 5){
             Order restingOrder = askIter.next();
             if(restingOrder.getPrice() == askPrice){
-                askQuantity += restingOrder.getQuantity();
+                asksList.get(asksList.size()-1).qty += restingOrder.getQuantity();
             }else{
-                break;
+                askPrice = restingOrder.getPrice();
+                asksList.add(new TopOfBookResponseMessage.PriceQuantityPair(askPrice, restingOrder.getQuantity()));
             }
         }
 
-        short bidQuantity = 0;
+        List<TopOfBookResponseMessage.PriceQuantityPair> bidsList = new ArrayList<>();
+        bidsList.add(new TopOfBookResponseMessage.PriceQuantityPair(bidPrice, (short)0));
+
         Iterator<Order> bidIter = bids.descendingIterator();
-        while(bidIter.hasNext()){
+        while(bidIter.hasNext() && bidsList.size() < 5){
             Order restingOrder = bidIter.next();
             if(restingOrder.getPrice() == bidPrice){
-                bidQuantity += restingOrder.getQuantity();
+                bidsList.get(bidsList.size()-1).qty += restingOrder.getQuantity();
             }else{
-                break;
+                bidPrice = restingOrder.getPrice();
+                bidsList.add(new TopOfBookResponseMessage.PriceQuantityPair(bidPrice, restingOrder.getQuantity()));
             }
         }
 
         TopOfBookResponseMessage topOfBookResponseMessage = new TopOfBookResponseMessage(
-                msg.getConversationId(), symbol,
-                bidPrice, bidQuantity, askPrice, askQuantity);
+                msg.getConversationId(), symbol, asksList, bidsList);
         try {
             tcpCommunicator.send(topOfBookResponseMessage);
             LOG.info("%s sent topOfBookResponseMessage to Gateway",this.symbol);

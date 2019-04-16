@@ -40,4 +40,6 @@ public class TopOfBookRequestMessage extends Message {
 
         return new TopOfBookRequestMessage(decoder.decodeUUID());
     }
+
+
 }

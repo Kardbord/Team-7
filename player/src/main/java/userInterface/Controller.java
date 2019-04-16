@@ -10,6 +10,7 @@ import javafx.scene.control.*;
 
 import messages.ForwardOrderConfirmationMessage;
 import messages.ScoreboardMessage;
+import messages.TopOfBookResponseMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import player.Player;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import messages.SubmitOrderMessage.OrderType;
@@ -47,8 +49,7 @@ public class Controller {
     @FXML private Label qtyLabel;
     @FXML private Label priceLabel;
     @FXML private Label orderIdLabel;
-    @FXML private ListView<String> orderBookAsks;
-    @FXML private ListView<String> orderBookBids;
+    @FXML private ListView<String> orderBookList;
     @FXML private ListView<String> symbolList;
     @FXML private ListView<String> portfolioList;
     @FXML private ListView<String> restingOrdersList;
@@ -76,7 +77,7 @@ public class Controller {
         selectedSymbol = symbolList.getSelectionModel().getSelectedItem();
         symbolList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             selectedSymbol = newValue;
-            orderBookAsks.getItems().clear();
+            orderBookList.getItems().clear();
         });
         orderTypes.selectedToggleProperty().addListener(((obs_v, old_toggle, new_toggle) -> {
             if (orderTypes.getSelectedToggle() != null) {
@@ -84,7 +85,7 @@ public class Controller {
                 fillOrderInfo();
             }
         }));
-        orderBookAsks.getSelectionModel().selectedItemProperty().addListener(((observable, oldVal, newVal) -> {
+        orderBookList.getSelectionModel().selectedItemProperty().addListener(((observable, oldVal, newVal) -> {
             fillOrderInfo();
         }));
         orderType = OrderType.BUY;
@@ -214,7 +215,20 @@ public class Controller {
     private void updateTopOfBook() {
         Platform.runLater(() -> {
             try {
-                orderBookAsks.getItems().add(topOfBookMap.get(selectedSymbol).toString());
+                ObservableList<String> orderBookListItems = orderBookList.getItems();
+                orderBookListItems.clear();
+                TopOfBookEntry topOfBookEntry = topOfBookMap.get(selectedSymbol);
+
+                List<TopOfBookResponseMessage.PriceQuantityPair> asksNew = new ArrayList<>(topOfBookEntry.getAsks());
+                Collections.reverse(asksNew);
+                for(TopOfBookResponseMessage.PriceQuantityPair pair : asksNew) {
+                    orderBookListItems.add(String.format("%25s%-25s", "", "$" + pair.getPrice() + " x " + pair.getQty() + "  ASK"));
+                }
+
+                for(TopOfBookResponseMessage.PriceQuantityPair pair: topOfBookEntry.getBids()) {
+                    orderBookListItems.add(String.format("%23s", "BID  " + pair.getQty() + " x $" + pair.getPrice()));
+                }
+
             } catch (NullPointerException e) {
                 log.error(e.getMessage());
             }
@@ -225,11 +239,11 @@ public class Controller {
         int quantity = 0, price = 0;
 
         if (orderType == OrderType.BUY) {
-            quantity = topOfBookMap.get(selectedSymbol).getAskQuantity();
-            price = topOfBookMap.get(selectedSymbol).getAskPrice();
+            quantity = topOfBookMap.get(selectedSymbol).getAsks().get(0).getQty();
+            price = topOfBookMap.get(selectedSymbol).getAsks().get(0).getPrice();
         } else if (orderType == OrderType.SELL) {
-            quantity = topOfBookMap.get(selectedSymbol).getBidQuantity();
-            price = topOfBookMap.get(selectedSymbol).getBidPrice();
+            quantity = topOfBookMap.get(selectedSymbol).getBids().get(0).getQty();
+            price = topOfBookMap.get(selectedSymbol).getBids().get(0).getPrice();
         }
         orderQty.setText(Integer.toString(quantity));
         orderPrice.setText(Integer.toString(price));

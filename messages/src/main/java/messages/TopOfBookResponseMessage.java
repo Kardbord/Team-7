@@ -1,37 +1,45 @@
 package messages;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public class TopOfBookResponseMessage extends Message {
 
     private String symbol;
-    private int bidPrice;
-    private short bidQuantity;
-    private int askPrice;
-    private short askQuantity;
+    private List<PriceQuantityPair> asks;
+    private List<PriceQuantityPair> bids;
 
-    public TopOfBookResponseMessage(UUID uuid, String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
+    public TopOfBookResponseMessage(UUID uuid, String symbol, List<PriceQuantityPair> asks, List<PriceQuantityPair> bids) {
         super(MessageType.TOP_OF_BOOK_RESPONSE, uuid);
         this.symbol = symbol;
-        this.bidPrice = bidPrice;
-        this.bidQuantity = bidQuantity;
-        this.askPrice = askPrice;
-        this.askQuantity = askQuantity;
+        this.asks = asks;
+        this.bids = bids;
     }
 
     @Override
     public byte[] encode() throws IOException {
-        return new Encoder()
+        Encoder encoder = new Encoder()
                 .encodeMessageType(messageType)
                 .encodeUUID(conversationId)
                 .encodeString(symbol)
-                .encodeInt(bidPrice)
-                .encodeShort(bidQuantity)
-                .encodeInt(askPrice)
-                .encodeShort(askQuantity)
-                .toByteArray();
+                .encodeInt(asks.size());
+
+        for(PriceQuantityPair pair : asks) {
+            encoder.encodeInt(pair.getPrice());
+            encoder.encodeShort(pair.getQty());
+        }
+
+        encoder.encodeInt(bids.size());
+
+        for(PriceQuantityPair pair : bids) {
+            encoder.encodeInt(pair.getPrice());
+            encoder.encodeShort(pair.getQty());
+        }
+
+        return encoder.toByteArray();
     }
 
     public static TopOfBookResponseMessage decode(byte[] messageBytes) {
@@ -43,43 +51,23 @@ public class TopOfBookResponseMessage extends Message {
 
         UUID uuid = decoder.decodeUUID();
         String symbol = decoder.decodeString();
-        int bidPrice = decoder.decodeInt();
-        short bidQuantity = decoder.decodeShort();
-        int askPrice = decoder.decodeInt();
-        short askQuantity = decoder.decodeShort();
 
-        return new TopOfBookResponseMessage(uuid, symbol, bidPrice, bidQuantity, askPrice, askQuantity);
-    }
+        List<PriceQuantityPair> asks = new ArrayList<>();
+        int asksSize = decoder.decodeInt();
 
-    public String getSymbol() {
-        return symbol;
-    }
+        for(int i = 0; i<asksSize; i++){
+            asks.add(new PriceQuantityPair(decoder.decodeInt(), decoder.decodeShort()));
+        }
 
-    public int getBidPrice() {
-        return bidPrice;
-    }
+        List<PriceQuantityPair> bids = new ArrayList<>();
+        int bidsSize = decoder.decodeInt();
 
-    public short getBidQuantity() {
-        return bidQuantity;
-    }
+        for(int i = 0; i<bidsSize; i++){
+            bids.add(new PriceQuantityPair(decoder.decodeInt(), decoder.decodeShort()));
+        }
 
-    public int getAskPrice() {
-        return askPrice;
-    }
 
-    public short getAskQuantity() {
-        return askQuantity;
-    }
-
-    @Override
-    public String toString() {
-        return "TopOfBookResponseMessage{" +
-                "symbol='" + symbol + '\'' +
-                ", bidPrice=" + bidPrice +
-                ", bidQuantity=" + bidQuantity +
-                ", askPrice=" + askPrice +
-                ", askQuantity=" + askQuantity +
-                '}';
+        return new TopOfBookResponseMessage(uuid, symbol, asks, bids);
     }
 
     @Override
@@ -88,15 +76,74 @@ public class TopOfBookResponseMessage extends Message {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         TopOfBookResponseMessage that = (TopOfBookResponseMessage) o;
-        return bidPrice == that.bidPrice &&
-                bidQuantity == that.bidQuantity &&
-                askPrice == that.askPrice &&
-                askQuantity == that.askQuantity &&
-                Objects.equals(symbol, that.symbol);
+        return Objects.equals(symbol, that.symbol) &&
+                Objects.equals(asks, that.asks) &&
+                Objects.equals(bids, that.bids);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), symbol, bidPrice, bidQuantity, askPrice, askQuantity);
+        return Objects.hash(super.hashCode(), symbol, asks, bids);
+    }
+
+    @Override
+    public String toString() {
+        return "TopOfBookResponseMessage{" +
+                "symbol='" + symbol + '\'' +
+                ", asks=" + asks +
+                ", bids=" + bids +
+                '}';
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public List<PriceQuantityPair> getAsks() {
+        return asks;
+    }
+
+    public List<PriceQuantityPair> getBids() {
+        return bids;
+    }
+
+    public static class PriceQuantityPair {
+        public int price;
+        public short qty;
+
+        public PriceQuantityPair(int price, short qty) {
+            this.price = price;
+            this.qty = qty;
+        }
+
+        public int getPrice() {
+            return price;
+        }
+
+        public short getQty() {
+            return qty;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PriceQuantityPair that = (PriceQuantityPair) o;
+            return price == that.price &&
+                    qty == that.qty;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(price, qty);
+        }
+
+        @Override
+        public String toString() {
+            return "PriceQuantityPair{" +
+                    "price=" + price +
+                    ", qty=" + qty +
+                    '}';
+        }
     }
 }

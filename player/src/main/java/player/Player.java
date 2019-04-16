@@ -16,7 +16,6 @@ import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 
 public class Player {
 
@@ -163,7 +162,7 @@ public class Player {
             } else {
                 PortfolioEntry entry = portfolio.get(msg.getSymbol());
                 entry.updatePositions(msg.getExecutedQty());
-                entry.updateEquity(topOfBookMap.get(msg.getSymbol()).getAskPrice());
+                entry.updateEquity(topOfBookMap.get(msg.getSymbol()).getAsks().get(0).getPrice());
                 portfolio.remove(msg.getSymbol());
                 portfolio.put(msg.getSymbol(), entry);
             }
@@ -197,10 +196,8 @@ public class Player {
         String symbol = msg.getSymbol();
         topOfBookMap.put(msg.getSymbol(), new TopOfBookEntry(
                 symbol,
-                msg.getBidPrice(),
-                msg.getBidQuantity(),
-                msg.getAskPrice(),
-                msg.getAskQuantity()
+                msg.getAsks(),
+                msg.getBids()
         ));
         if (!symbolList.contains(msg.getSymbol())) {
             symbolList.add(msg.getSymbol());

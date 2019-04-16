@@ -103,10 +103,8 @@ public class Gateway {
                             symbolToTopOfBookMap.forEach((symbol, topofBookEntry) -> {
                                 TopOfBookNotificationMessage notfication = new TopOfBookNotificationMessage(
                                         symbol,
-                                        topofBookEntry.getBidPrice(),
-                                        topofBookEntry.getBidQuantity(),
-                                        topofBookEntry.getAskPrice(),
-                                        topofBookEntry.getAskQuantity()
+                                        topofBookEntry.getAsks(),
+                                        topofBookEntry.getBids()
                                 );
                                 try {
                                     udpCommunicator.send(
@@ -188,7 +186,7 @@ public class Gateway {
         final int[] trueTotalInvestments = {playerDetailEntry.getTotalInvestments()};
         playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
             if (shares >= 0) return;
-            trueTotalInvestments[0] += symbolToTopOfBookMap.get(symbol).getBidPrice() * shares;
+            trueTotalInvestments[0] += symbolToTopOfBookMap.get(symbol).getBids().get(0).getPrice() * shares;
         });
 
         if (playerDetailEntry.getCashFromSales() == 0) {
@@ -202,7 +200,7 @@ public class Gateway {
         PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
         final int[] equity = {0};
         playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
-            equity[0] += symbolToTopOfBookMap.get(symbol).getBidPrice() * shares;
+            equity[0] += symbolToTopOfBookMap.get(symbol).getBids().get(0).getPrice() * shares;
         });
         return equity[0];
     }
@@ -274,10 +272,8 @@ public class Gateway {
                 msg.getSymbol(),
                 new TopOfBookEntry(
                         msg.getSymbol(),
-                        msg.getBidPrice(),
-                        msg.getBidQuantity(),
-                        msg.getAskPrice(),
-                        msg.getAskQuantity()
+                        msg.getAsks(),
+                        msg.getBids()
                 )
         );
         LOG.info("Received TopOfBookResponseMessage from %s", msg.getSymbol());

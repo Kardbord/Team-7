@@ -1,20 +1,19 @@
 package gateway;
 
+import messages.TopOfBookResponseMessage;
+
+import java.util.List;
+
 public class TopOfBookEntry {
     private String symbol;
 
-    private int bidPrice;
-    private short bidQuantity;
+    private List<TopOfBookResponseMessage.PriceQuantityPair> asks;
+    private List<TopOfBookResponseMessage.PriceQuantityPair> bids;
 
-    private int askPrice;
-    private short askQuantity;
-
-    public TopOfBookEntry(String symbol, int bidPrice, short bidQuantity, int askPrice, short askQuantity) {
+    public TopOfBookEntry(String symbol, List<TopOfBookResponseMessage.PriceQuantityPair> asks, List<TopOfBookResponseMessage.PriceQuantityPair> bids) {
         this.symbol = symbol;
-        this.bidPrice = bidPrice;
-        this.bidQuantity = bidQuantity;
-        this.askPrice = askPrice;
-        this.askQuantity = askQuantity;
+        this.asks = asks;
+        this.bids = bids;
     }
 
     String getSymbol() {
@@ -25,40 +24,28 @@ public class TopOfBookEntry {
         this.symbol = symbol;
     }
 
-    public int getBidPrice() {
-        return bidPrice;
+    public List<TopOfBookResponseMessage.PriceQuantityPair> getAsks() {
+        return asks;
     }
 
-    void setBidPrice(short bidPrice) {
-        this.bidPrice = bidPrice;
+    public void setAsks(List<TopOfBookResponseMessage.PriceQuantityPair> asks) {
+        this.asks = asks;
     }
 
-    public short getBidQuantity() {
-        return bidQuantity;
+    public List<TopOfBookResponseMessage.PriceQuantityPair> getBids() {
+        return bids;
     }
 
-    void setBidQuantity(short bidQuantity) {
-        this.bidQuantity = bidQuantity;
-    }
-
-    public int getAskPrice() {
-        return askPrice;
-    }
-
-    void setAskPrice(short askPrice) {
-        this.askPrice = askPrice;
-    }
-
-    public short getAskQuantity() {
-        return askQuantity;
-    }
-
-    void setAskQuantity(short askQuantity) {
-        this.askQuantity = askQuantity;
+    public void setBids(List<TopOfBookResponseMessage.PriceQuantityPair> bids) {
+        this.bids = bids;
     }
 
     @Override
     public String toString() {
-        return String.format( "Bid: $%d x %d\t Ask: $%d x %d", this.bidPrice, this.bidQuantity, this.askPrice, this.askQuantity);
+        return "TopOfBookEntry{" +
+                "symbol='" + symbol + '\'' +
+                ", asks=" + asks +
+                ", bids=" + bids +
+                '}';
     }
 }

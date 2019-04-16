@@ -3,6 +3,9 @@ package messages;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -14,28 +17,34 @@ public class TopOfBookResponseMessageTest {
         Message.MessageType expectedMessageType = Message.MessageType.TOP_OF_BOOK_RESPONSE;
         UUID expectedUUID = UUID.randomUUID();
         String expectedSymbol = "NVDA";
-        int expectedBidPrice = 500;
-        short expectedBidQty = 5;
+
         int expectedAskPrice = 550;
         short expectedAskQty = 3;
+        List<TopOfBookResponseMessage.PriceQuantityPair> asks =
+                List.of(new TopOfBookResponseMessage.PriceQuantityPair(expectedAskPrice, expectedAskQty));
+
+        int expectedBidPrice = 500;
+        short expectedBidQty = 5;
+        List<TopOfBookResponseMessage.PriceQuantityPair> bids =
+                List.of(new TopOfBookResponseMessage.PriceQuantityPair(expectedBidPrice, expectedBidQty));
 
         byte[] expectedMessageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeUUID(expectedUUID)
                 .encodeString(expectedSymbol)
-                .encodeInt(expectedBidPrice)
-                .encodeShort(expectedBidQty)
+                .encodeInt(asks.size())
                 .encodeInt(expectedAskPrice)
                 .encodeShort(expectedAskQty)
+                .encodeInt(bids.size())
+                .encodeInt(expectedBidPrice)
+                .encodeShort(expectedBidQty)
                 .toByteArray();
 
         byte[] actualMessageBytes =
                 new TopOfBookResponseMessage(
                         expectedUUID,
                         expectedSymbol,
-                        expectedBidPrice,
-                        expectedBidQty, expectedAskPrice,
-                        expectedAskQty).encode();
+                        asks, bids).encode();
 
         assertArrayEquals(expectedMessageBytes, actualMessageBytes);
     }
@@ -47,26 +56,28 @@ public class TopOfBookResponseMessageTest {
         String expectedSymbol = "NVDA";
         int expectedBidPrice = 500;
         short expectedBidQty = 5;
+        TopOfBookResponseMessage.PriceQuantityPair bid = new TopOfBookResponseMessage.PriceQuantityPair(expectedBidPrice, expectedBidQty);
         int expectedAskPrice = 550;
         short expectedAskQty = 3;
+        TopOfBookResponseMessage.PriceQuantityPair ask = new TopOfBookResponseMessage.PriceQuantityPair(expectedAskPrice, expectedAskQty);
 
         byte[] messageBytes = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
                 .encodeUUID(expectedUUID)
                 .encodeString(expectedSymbol)
-                .encodeInt(expectedBidPrice)
-                .encodeShort(expectedBidQty)
+                .encodeInt(1)
                 .encodeInt(expectedAskPrice)
                 .encodeShort(expectedAskQty)
+                .encodeInt(1)
+                .encodeInt(expectedBidPrice)
+                .encodeShort(expectedBidQty)
                 .toByteArray();
 
         TopOfBookResponseMessage victim = TopOfBookResponseMessage.decode(messageBytes);
 
         assertEquals(expectedSymbol, victim.getSymbol());
-        assertEquals(expectedBidPrice, victim.getBidPrice());
-        assertEquals(expectedBidQty, victim.getBidQuantity());
-        assertEquals(expectedAskPrice, victim.getAskPrice());
-        assertEquals(expectedAskQty, victim.getAskQuantity());
+        assertEquals(bid, victim.getBids().get(0));
+        assertEquals(ask, victim.getAsks().get(0));
     }
 
 }
