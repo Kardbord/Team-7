@@ -62,19 +62,19 @@ public class ClientApp extends Application {
         TextField serverField = new TextField("127.0.0.1");
 
         Button btn = new Button("Register");
-        btn.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                if (userTextField.getText() != null && !userTextField.getText().isEmpty()) {
-                    try {
-                        controller.initPlayer((userTextField.getText()), serverField.getText());
-                        primaryStage.setScene(showPortfolio());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    userTextField.setPromptText("Name is required...");
+        btn.setOnAction(actionEvent -> {
+            if (userTextField.getText() != null && !userTextField.getText().isEmpty()) {
+                try {
+                    controller.initPlayer((userTextField.getText()), serverField.getText());
+                    primaryStage.setScene(showPortfolio());
+                } catch (IOException e) {
+                    log.error("Invalid server address.");
+                    e.getMessage();
+                    serverField.clear();
+                    serverField.setPromptText("Invalid address...");
                 }
+            } else {
+                userTextField.setPromptText("Name is required...");
             }
         });
         HBox hbBtn = new HBox();

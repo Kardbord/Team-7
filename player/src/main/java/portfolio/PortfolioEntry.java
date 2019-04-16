@@ -8,13 +8,13 @@ public class PortfolioEntry {
     private static Logger log = LogManager.getFormatterLogger(PortfolioEntry.class.getName());
 
     private String symbol;
-    private int positions;
+    private short positions;
     private int equity;
 
-    public PortfolioEntry(String symbol, int positions, int equity) {
+    public PortfolioEntry(String symbol, short positions, int price) {
         this.symbol = symbol;
         this.positions = positions;
-        this.equity = equity * positions;
+        this.equity = price * positions;
     }
 
     public String getSymbol() {
@@ -25,7 +25,7 @@ public class PortfolioEntry {
         return equity;
     }
 
-    public int getPositions() {
+    public short getPositions() {
         return positions;
     }
 
@@ -33,7 +33,7 @@ public class PortfolioEntry {
         this.equity = equity;
     }
 
-    public void setPositions(int positions) {
+    public void setPositions(short positions) {
         this.positions = positions;
     }
 

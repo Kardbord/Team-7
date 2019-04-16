@@ -127,11 +127,12 @@ public class Controller {
 
     }
     void updateInfo() {
-        this.serverAddress.setText(player.getServerSocketAddress().toString());
-        this.nameLabel.setText("Name: " + player.getName());
-        this.idLabel.setText("ID: " + player.getPlayerId());
-        this.cashLabel.setText("Cash: " + player.getCash());
-
+        Platform.runLater(() -> {
+            this.serverAddress.setText(player.getServerSocketAddress().toString().replace("/", ""));
+            this.nameLabel.setText("Name: " + player.getName());
+            this.idLabel.setText("ID: " + player.getPlayerId());
+            this.cashLabel.setText("Cash: " + player.getCash());
+        });
     }
 
     private void updatePortfolio() {
@@ -160,17 +161,19 @@ public class Controller {
             }
             int price = Integer.parseInt(orderPrice.getText());
             int quantity = Integer.parseInt(orderQty.getText());
-            if (player.getCash() - (price * quantity) < 0) {
+            if (orderType == OrderType.BUY && (player.getCash() - (price * quantity) < 0)) {
                 showAlert("Insufficient Funds", "You do not have enough funds to place this order");
             } else if (selectedSymbol == null ) {
                 showAlert("No symbol selected", "Please Select a Symbol");
             } else{
-                player.submitOrder((short) player.getPlayerId(), orderType, (short) quantity, price, selectedSymbol);
+                player.submitOrder(player.getPlayerId(), orderType, (short) quantity, price, selectedSymbol);
             }
         } catch (NumberFormatException err) {
             showAlert("Invalid value entered ", err.getMessage());
         } catch (NullPointerException err) {
             log.error(err.getMessage());
+        } catch (Exception err) {
+            showAlert("Invalid Symbol", err.getMessage());
         }
     }
 

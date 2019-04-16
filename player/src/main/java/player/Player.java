@@ -76,7 +76,7 @@ public class Player {
     /**
      * Send the player register Message to the gateway
      */
-    private void registerPlayer() {
+    private void registerPlayer() throws IOException {
         try {
             log.info("Sending Player Register Message");
             this.udpCommunicator.sendReliably(
@@ -86,13 +86,30 @@ public class Player {
                     PlayerRegisteredMessage.class
             );
         } catch (IOException e) {
-            e.printStackTrace();
+            e.getMessage();
+            throw new IOException();
         }
 
     }
 
-    public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) {
+    public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) throws Exception{
         log.info("Player %d submitted a %s order for %d shares of %s at %d per share", playerId, orderType.name(), quantity, symbol, price);
+
+//        if (orderType == OrderType.BUY) {
+            sendOrder(playerId, orderType, quantity, price, symbol);
+//        }
+//        else if (orderType == OrderType.SELL && portfolio.containsKey(symbol)) {
+//            if (portfolio.get(symbol).getPositions() < quantity) {
+//                quantity = portfolio.get(symbol).getPositions();  // If more shares were submitted for sell then only sell available shares.
+//            }
+//            sendOrder(playerId, orderType, quantity, price, symbol);
+//        } else {
+//            log.info("Player %d does not own selected stock", playerId);
+//            throw new Exception("You do not own shares of selected stock");
+//        }
+    }
+
+    private void sendOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) {
         try {
             this.udpCommunicator.sendReliably(
                     new SubmitOrderMessage(playerId, orderType, quantity, price, symbol),
@@ -135,15 +152,27 @@ public class Player {
     private void updatePortfolio(Envelope<ForwardOrderConfirmationMessage> env) {
         log.info("Order Confirmation received");
         ForwardOrderConfirmationMessage msg = env.getMessage();
-        if (msg.getExecutedQty() > 0) {
+        if (msg.getExecutedQty() > 0 && msg.getOrderType() == OrderType.BUY) {
             if (!portfolio.containsKey(msg.getSymbol())) {
                 portfolio.put(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), msg.getExecutedQty(), msg.getPrice()));
             } else {
                 PortfolioEntry entry = portfolio.get(msg.getSymbol());
                 entry.updatePositions(msg.getExecutedQty());
-                entry.updateEquity(msg.getPrice());
+                entry.updateEquity(topOfBookMap.get(msg.getSymbol()).getAskPrice());
+                portfolio.remove(msg.getSymbol());
                 portfolio.put(msg.getSymbol(), entry);
             }
+            cash -= portfolio.get(msg.getSymbol()).getEquity();
+        } else if (msg.getExecutedQty() > 0 && msg.getOrderType() == OrderType.SELL) {
+            PortfolioEntry entry = portfolio.get(msg.getSymbol());
+            if (entry.getPositions() == msg.getExecutedQty()) {
+                portfolio.remove(msg.getSymbol());
+            } else {
+                entry.updatePositions(-msg.getExecutedQty());
+                portfolio.remove(msg.getSymbol());
+                portfolio.put(msg.getSymbol(), entry);
+            }
+            cash += msg.getExecutedQty() * msg.getPrice();
         }
 
         if (msg.getRestingQty() == 0) {
