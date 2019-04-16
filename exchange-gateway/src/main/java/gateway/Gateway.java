@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Gateway {
@@ -26,6 +28,11 @@ public class Gateway {
      * Rate is in milliseconds
      */
     private final static int TOP_OF_BOOK_BROADCAST_RATE = 1500;
+
+    /**
+     * Rate is in milliseconds
+     */
+    private final static int SCOREBOARD_BROADCAST_RATE = 1500;
 
     public final static int PORT = 2000;
 
@@ -58,6 +65,7 @@ public class Gateway {
         initUdpDispatcherListeners();
         initTopOfBookRefresh();
         initTopOfBookBroadcast();
+        initScoreboardBroadcast();
     }
 
     private void initTopOfBookRefresh() {
@@ -124,6 +132,79 @@ public class Gateway {
             }
         }).start();
         LOG.info("Initialized TopOfBookBroadcast worker");
+    }
+
+    private void initScoreboardBroadcast() {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(SCOREBOARD_BROADCAST_RATE);
+                } catch (InterruptedException e) {
+                    LOG.error("Scoreboard broadcast interrupted -> %s", e.getMessage());
+                }
+
+                ArrayList<ScoreboardMessage.ScoreboardEntry> scoreboard = new ArrayList<>(symbolToTopOfBookMap.size());
+                idToPlayerDetailMap.forEach((playerId, playerDetailEntry) -> {
+                    scoreboard.add(
+                            new ScoreboardMessage.ScoreboardEntry(
+                                    playerDetailEntry.getName(),
+                                    getPlayerNetWorth(playerId),
+                                    getPlayerReturnOnInvestments(playerId)
+                            )
+                    );
+                });
+
+                ScoreboardMessage scoreboardMessage = new ScoreboardMessage(UUID.randomUUID(), scoreboard);
+                idToPlayerDetailMap.forEach((__, playerDetailEntry) -> {
+                    try {
+                        udpCommunicator.send(
+                                scoreboardMessage,
+                                playerDetailEntry.getSocketAddress().getAddress(),
+                                playerDetailEntry.getSocketAddress().getPort()
+                        );
+                    } catch (IOException e) {
+                        LOG.error("Failure in Gateway while broadcasting scoreboard to %s -> %s",
+                                playerDetailEntry.getName(),
+                                e.getMessage()
+                        );
+                    }
+                });
+            }
+        }).start();
+        LOG.info("Initialized ScoreboardBroadcast worker");
+    }
+
+    // TODO: Test me
+    public int getPlayerNetWorth(short playerId) {
+        PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
+        return playerDetailEntry.getCash() + getPlayerEquity(playerId);
+    }
+
+    // TODO: Test me
+    public float getPlayerReturnOnInvestments(short playerId) {
+        PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
+
+        // Handle short selling
+        final int[] trueTotalInvestments = {playerDetailEntry.getTotalInvestments()};
+        playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
+            if (shares >= 0) return;
+            trueTotalInvestments[0] += symbolToTopOfBookMap.get(symbol).getBidPrice() * shares;
+        });
+
+        if (playerDetailEntry.getCashFromSales() == 0) {
+            return 0;
+        }
+        return (float) playerDetailEntry.getCashFromSales() / trueTotalInvestments[0];
+    }
+
+    // TODO: Test me
+    public int getPlayerEquity(short playerId) {
+        PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
+        final int[] equity = {0};
+        playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
+            equity[0] += symbolToTopOfBookMap.get(symbol).getBidPrice() * shares;
+        });
+        return equity[0];
     }
 
     private void initMatchingEngineMessageListeners() throws IOException {
@@ -276,6 +357,8 @@ public class Gateway {
     private void forwardOrderConfirmation(Envelope<OrderConfirmationMessage> envelope) {
         ForwardOrderConfirmationMessage forwardOrderConfirmationMessage = new ForwardOrderConfirmationMessage(envelope.getMessage());
         PlayerDetailEntry player = idToPlayerDetailMap.get(envelope.getMessage().getPlayerId());
+
+        // Forward message
         InetAddress playerAddress = player.getSocketAddress().getAddress();
         int playerPort = player.getSocketAddress().getPort();
         LOG.info("Forwarding Order Confirmation to Player %d", player.getId());
@@ -287,6 +370,17 @@ public class Gateway {
                     symbol,
                     player.getName()
             );
+        }
+
+        // Update scoreboard fields
+        if (envelope.getMessage().getOrderType() == SubmitOrderMessage.OrderType.BUY) {
+            player.setCash(player.getCash() - (envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice()));
+            player.incrementTotalInvestments(envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice());
+            player.addShares(envelope.getMessage().getSymbol(), envelope.getMessage().getExecutedQty());
+        } else {
+            player.incrementCashFromSales(envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice());
+            player.setCash(player.getCash() + (envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice()));
+            player.subtractShares(envelope.getMessage().getSymbol(), envelope.getMessage().getExecutedQty());
         }
     }
 

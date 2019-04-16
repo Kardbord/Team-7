@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 import java.util.UUID;
 
@@ -25,6 +26,7 @@ public class ScoreboardMessageTest {
             float randomROI = rand.nextFloat();
             expectedScoreboard.add(new ScoreboardMessage.ScoreboardEntry(randomName, randomNetWorth, randomROI));
         }
+        Collections.sort(expectedScoreboard);
 
         Message.Encoder encoder = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)
@@ -55,6 +57,7 @@ public class ScoreboardMessageTest {
             float randomROI = rand.nextFloat();
             expectedScoreboard.add(new ScoreboardMessage.ScoreboardEntry(randomName, randomNetWorth, randomROI));
         }
+        Collections.sort(expectedScoreboard);
 
         Message.Encoder encoder = new Message.Encoder()
                 .encodeMessageType(expectedMessageType)

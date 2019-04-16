@@ -2,6 +2,7 @@ package gateway;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
 
 class PlayerDetailEntry {
     public static final int STARTING_CASH = 50000;
@@ -10,17 +11,26 @@ class PlayerDetailEntry {
 
     private int cash;
 
+    private int totalInvestments;
+
+    private int cashFromSales;
+
     private String name;
 
     private short id;
 
     private InetSocketAddress socketAddress;
 
+    private ConcurrentHashMap<String, Integer> symbolToSharesMap;
+
     PlayerDetailEntry(String playerName, InetSocketAddress socketAddress) {
         this.id = getNextPlayerIdAndIncrement();
         this.cash = STARTING_CASH;
+        this.totalInvestments = 0;
+        this.cashFromSales = 0;
         this.socketAddress = socketAddress;
         this.name = playerName;
+        this.symbolToSharesMap = new ConcurrentHashMap<>();
     }
 
     private static short getNextPlayerIdAndIncrement() {
@@ -61,5 +71,47 @@ class PlayerDetailEntry {
 
     void setName(String name) {
         this.name = name;
+    }
+
+    int getTotalInvestments() {
+        return totalInvestments;
+    }
+
+    void incrementTotalInvestments(int increment) {
+        if (increment < 0) {
+            throw new IllegalArgumentException();
+        }
+        this.totalInvestments += increment;
+    }
+
+    int getCashFromSales() {
+        return cashFromSales;
+    }
+
+    void incrementCashFromSales(int increment) {
+        if (increment < 0) {
+            throw new IllegalArgumentException();
+        }
+        this.cashFromSales += increment;
+    }
+
+    ConcurrentHashMap<String, Integer> getSymbolToSharesMap() {
+        return symbolToSharesMap;
+    }
+
+    void addShares(String symbol, int increment) {
+        if (increment < 0) {
+            throw new IllegalArgumentException();
+        }
+        int previousShares = this.symbolToSharesMap.getOrDefault(symbol, 0);
+        this.symbolToSharesMap.put(symbol, previousShares + increment);
+    }
+
+    void subtractShares(String symbol, int decrement) {
+        if (decrement < 0) {
+            throw new IllegalArgumentException();
+        }
+        int previousShares = this.symbolToSharesMap.getOrDefault(symbol, 0);
+        this.symbolToSharesMap.put(symbol, previousShares - decrement);
     }
 }

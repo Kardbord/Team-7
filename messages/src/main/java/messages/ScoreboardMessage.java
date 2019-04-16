@@ -2,6 +2,7 @@ package messages;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ public class ScoreboardMessage extends Message {
                 .encodeUUID(this.conversationId)
                 .encodeShort((short) scoreboard.size());
 
+        Collections.sort(this.scoreboard);
         for (ScoreboardEntry scoreboardEntry : scoreboard) {
             scoreboardEntry.encode(encoder);
         }
@@ -66,7 +68,7 @@ public class ScoreboardMessage extends Message {
         return Objects.hash(super.hashCode(), scoreboard);
     }
 
-    public static class ScoreboardEntry {
+    public static class ScoreboardEntry implements Comparable<ScoreboardEntry> {
 
         private String playerName;
 
@@ -124,6 +126,11 @@ public class ScoreboardMessage extends Message {
         @Override
         public int hashCode() {
             return Objects.hash(super.hashCode(), playerName, netWorth, returnOnInvestment);
+        }
+
+        @Override
+        public int compareTo(ScoreboardEntry other) {
+            return Integer.compare(this.netWorth, other.getNetWorth());
         }
     }
 }
