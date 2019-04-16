@@ -9,6 +9,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import messages.ForwardOrderConfirmationMessage;
+import messages.ScoreboardMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import player.Player;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import messages.SubmitOrderMessage.OrderType;
+import messages.ScoreboardMessage.ScoreboardEntry;
 
 public class Controller {
 
@@ -35,9 +37,7 @@ public class Controller {
     private ObservableMap<Short, ForwardOrderConfirmationMessage> restingOrdersMap;
     private List<ForwardOrderConfirmationMessage> restingOrders = new ArrayList<>();
     private ForwardOrderConfirmationMessage selectedRestingOrder;
-//    private int quantity;
-//    private int price;
-
+    private ObservableList<ScoreboardEntry> scoreboardEntries;
 
     @FXML private MenuItem quit;
     @FXML private Label serverAddress;
@@ -52,6 +52,7 @@ public class Controller {
     @FXML private ListView<String> symbolList;
     @FXML private ListView<String> portfolioList;
     @FXML private ListView<String> restingOrdersList;
+    @FXML private ListView<String> scoreboardList;
     @FXML private RadioButton buyBtn;
     @FXML private RadioButton sellBtn;
     @FXML private RadioButton cancelOrderBtn;
@@ -97,6 +98,8 @@ public class Controller {
                 cancelOrderId.setText(selectedRestingOrder.getOrderId() + "");
             }
         });
+
+
     }
 
 
@@ -116,6 +119,9 @@ public class Controller {
 
         restingOrdersMap = player.getRestingOrdersMap();
         restingOrdersMap.addListener((MapChangeListener<Short, ForwardOrderConfirmationMessage>) change -> updateRestingOrders());
+
+        scoreboardEntries = player.getScoreboardEntries();
+        scoreboardEntries.addListener((ListChangeListener<ScoreboardEntry>) change -> updateScoreboard());
     }
 
     // This still needs work
@@ -241,6 +247,19 @@ public class Controller {
                 }
             } catch (NullPointerException e) {
                 log.error(e.getMessage());
+            }
+        });
+    }
+
+    private void updateScoreboard() {
+        Platform.runLater(() -> {
+            try {
+                scoreboardList.getItems().clear();
+                scoreboardEntries.forEach(entry -> {
+                    scoreboardList.getItems().add(String.format("%s Cash:%d ROI:%.2f", entry.getPlayerName(), entry.getNetWorth(), entry.getReturnOnInvestment()));
+                });
+            } catch (NullPointerException e) {
+                e.getMessage();
             }
         });
     }

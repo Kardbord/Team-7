@@ -8,6 +8,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import messages.*;
 import messages.SubmitOrderMessage.OrderType;
+import messages.ScoreboardMessage.ScoreboardEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import portfolio.PortfolioEntry;
@@ -15,6 +16,7 @@ import utils.Utils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 
 public class Player {
 
@@ -26,6 +28,7 @@ public class Player {
     private ObservableMap<String, TopOfBookEntry> topOfBookMap;
     private ObservableMap<String, PortfolioEntry> portfolio;
     private ObservableMap<Short, ForwardOrderConfirmationMessage> restingOrdersMap;
+    private ObservableList<ScoreboardEntry> scoreboardEntries;
 
     private String name;
     private short playerId;
@@ -55,6 +58,7 @@ public class Player {
         this.portfolio = FXCollections.observableHashMap();
         this.restingOrdersMap = FXCollections.observableHashMap();
         this.symbolList = FXCollections.observableArrayList();
+        this.scoreboardEntries = FXCollections.observableArrayList();
         initMessageListeners();
         registerPlayer();
     }
@@ -67,6 +71,7 @@ public class Player {
         udpCommunicator.registerForDispatch(TopOfBookNotificationMessage.class, this::updateTopOfBook);
         udpCommunicator.registerForDispatch(ForwardOrderConfirmationMessage.class, this::updatePortfolio);
         udpCommunicator.registerForDispatch(ForwardCancelConfirmationMessage.class, this::updateRestingOrders);
+        udpCommunicator.registerForDispatch(ScoreboardMessage.class, this::updateScoreboard);
         new Thread(udpCommunicator).start();
         log.info("Initialized PlayerRegisteredListener");
         log.info("Initialized TopOfBookNotificationListener");
@@ -164,13 +169,17 @@ public class Player {
             }
             cash -= portfolio.get(msg.getSymbol()).getEquity();
         } else if (msg.getExecutedQty() > 0 && msg.getOrderType() == OrderType.SELL) {
-            PortfolioEntry entry = portfolio.get(msg.getSymbol());
-            if (entry.getPositions() == msg.getExecutedQty()) {
-                portfolio.remove(msg.getSymbol());
-            } else {
-                entry.updatePositions(-msg.getExecutedQty());
-                portfolio.remove(msg.getSymbol());
-                portfolio.put(msg.getSymbol(), entry);
+            try {
+                PortfolioEntry entry = portfolio.get(msg.getSymbol());
+                if (entry.getPositions() == msg.getExecutedQty()) {
+                    portfolio.remove(msg.getSymbol());
+                } else {
+                    entry.updatePositions(-msg.getExecutedQty());
+                    portfolio.remove(msg.getSymbol());
+                    portfolio.put(msg.getSymbol(), entry);
+                }
+            } catch (NullPointerException e) {
+                log.error("You do not own the selected stock");
             }
             cash += msg.getExecutedQty() * msg.getPrice();
         }
@@ -201,6 +210,12 @@ public class Player {
     private void updateRestingOrders(Envelope<ForwardCancelConfirmationMessage> envelope) {
         log.info("Received ForwardCancelConfirmation: " + envelope.getMessage());
         restingOrdersMap.remove(envelope.getMessage().getOrderId());
+    }
+
+    private void updateScoreboard(Envelope<ScoreboardMessage> envelope) {
+        ScoreboardMessage msg = envelope.getMessage();
+        scoreboardEntries.clear();
+        scoreboardEntries.addAll(msg.getScoreboard());
     }
 
     public String getName() {
@@ -242,5 +257,9 @@ public class Player {
 
     public ObservableMap<Short, ForwardOrderConfirmationMessage> getRestingOrdersMap() {
         return restingOrdersMap;
+    }
+
+    public ObservableList<ScoreboardEntry> getScoreboardEntries() {
+        return scoreboardEntries;
     }
 }

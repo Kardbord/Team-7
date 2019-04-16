@@ -130,7 +130,7 @@ public class ScoreboardMessage extends Message {
 
         @Override
         public int compareTo(ScoreboardEntry other) {
-            return Integer.compare(this.netWorth, other.getNetWorth());
+            return Integer.compare(other.getNetWorth(), this.netWorth);
         }
     }
 }
