@@ -256,7 +256,7 @@ public class Controller {
             try {
                 scoreboardList.getItems().clear();
                 scoreboardEntries.forEach(entry -> {
-                    scoreboardList.getItems().add(String.format("%s Cash:%d ROI:%.2f", entry.getPlayerName(), entry.getNetWorth(), entry.getReturnOnInvestment()));
+                    scoreboardList.getItems().add(String.format("(%s) -- Net Worth: $%d -- ROI: %.2f", entry.getPlayerName(), entry.getNetWorth(), entry.getReturnOnInvestment()));
                 });
             } catch (NullPointerException e) {
                 e.getMessage();
