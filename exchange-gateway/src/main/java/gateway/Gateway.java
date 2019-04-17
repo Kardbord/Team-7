@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.Math.*;
+
 public class Gateway {
 
     private static final Logger LOG = LogManager.getFormatterLogger(Gateway.class.getName());
@@ -175,7 +177,13 @@ public class Gateway {
     // TODO: Test me
     public int getPlayerNetWorth(short playerId) {
         PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
-        return playerDetailEntry.getCash() + getPlayerEquity(playerId);
+        final int[] debts = {0};
+        playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
+            if (shares < 0) {
+                debts[0] += symbolToTopOfBookMap.get(symbol).getBids().get(0).price * abs(shares);
+            }
+        });
+        return playerDetailEntry.getCash() + getPlayerEquity(playerId) - debts[0];
     }
 
     // TODO: Test me
@@ -200,7 +208,9 @@ public class Gateway {
         PlayerDetailEntry playerDetailEntry = idToPlayerDetailMap.get(playerId);
         final int[] equity = {0};
         playerDetailEntry.getSymbolToSharesMap().forEach((symbol, shares) -> {
-            equity[0] += symbolToTopOfBookMap.get(symbol).getBids().get(0).getPrice() * shares;
+            if (shares > 0) {
+                equity[0] += symbolToTopOfBookMap.get(symbol).getAsks().get(0).getPrice() * shares;
+            }
         });
         return equity[0];
     }
@@ -352,6 +362,7 @@ public class Gateway {
 
     private void forwardOrderConfirmation(Envelope<OrderConfirmationMessage> envelope) {
         ForwardOrderConfirmationMessage forwardOrderConfirmationMessage = new ForwardOrderConfirmationMessage(envelope.getMessage());
+        String symbol = envelope.getMessage().getSymbol();
         PlayerDetailEntry player = idToPlayerDetailMap.get(envelope.getMessage().getPlayerId());
 
         // Forward message
@@ -361,7 +372,6 @@ public class Gateway {
         try {
             udpCommunicator.send(forwardOrderConfirmationMessage, playerAddress, playerPort);
         } catch (IOException e) {
-            String symbol = forwardOrderConfirmationMessage.getSymbol();
             LOG.error("Failed to send ForwardOrderConfirmationMessage. OrderConfirmationMessage came from %s bound for %s",
                     symbol,
                     player.getName()
@@ -372,12 +382,13 @@ public class Gateway {
         if (envelope.getMessage().getOrderType() == SubmitOrderMessage.OrderType.BUY) {
             player.setCash(player.getCash() - (envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice()));
             player.incrementTotalInvestments(envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice());
-            player.addShares(envelope.getMessage().getSymbol(), envelope.getMessage().getExecutedQty());
+            player.addShares(symbol, envelope.getMessage().getExecutedQty());
         } else {
             player.incrementCashFromSales(envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice());
             player.setCash(player.getCash() + (envelope.getMessage().getExecutedQty() * envelope.getMessage().getPrice()));
-            player.subtractShares(envelope.getMessage().getSymbol(), envelope.getMessage().getExecutedQty());
+            player.subtractShares(symbol, envelope.getMessage().getExecutedQty());
         }
+
     }
 
     private void forwardCancel(Envelope<CancelOrderMessage> envelope) {

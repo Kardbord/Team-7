@@ -41,28 +41,48 @@ public class Controller {
     private ForwardOrderConfirmationMessage selectedRestingOrder;
     private ObservableList<ScoreboardEntry> scoreboardEntries;
 
-    @FXML private MenuItem quit;
-    @FXML private Label serverAddress;
-    @FXML private Label nameLabel;
-    @FXML private Label idLabel;
-    @FXML private Label cashLabel;
-    @FXML private Label qtyLabel;
-    @FXML private Label priceLabel;
-    @FXML private Label orderIdLabel;
-    @FXML private ListView<String> orderBookList;
-    @FXML private ListView<String> symbolList;
-    @FXML private ListView<String> portfolioList;
-    @FXML private ListView<String> restingOrdersList;
-    @FXML private ListView<String> scoreboardList;
-    @FXML private RadioButton buyBtn;
-    @FXML private RadioButton sellBtn;
-    @FXML private RadioButton cancelOrderBtn;
-    @FXML private TextField orderQty;
-    @FXML private TextField orderPrice;
-    @FXML private TextField cancelOrderId;
-    @FXML private Button orderBtn;
-    @FXML private ToggleGroup orderTypes;
-
+    @FXML
+    private MenuItem quit;
+    @FXML
+    private Label serverAddress;
+    @FXML
+    private Label nameLabel;
+    @FXML
+    private Label idLabel;
+    @FXML
+    private Label cashLabel;
+    @FXML
+    private Label qtyLabel;
+    @FXML
+    private Label priceLabel;
+    @FXML
+    private Label orderIdLabel;
+    @FXML
+    private ListView<String> orderBookList;
+    @FXML
+    private ListView<String> symbolList;
+    @FXML
+    private ListView<String> portfolioList;
+    @FXML
+    private ListView<String> restingOrdersList;
+    @FXML
+    private ListView<String> scoreboardList;
+    @FXML
+    private RadioButton buyBtn;
+    @FXML
+    private RadioButton sellBtn;
+    @FXML
+    private RadioButton cancelOrderBtn;
+    @FXML
+    private TextField orderQty;
+    @FXML
+    private TextField orderPrice;
+    @FXML
+    private TextField cancelOrderId;
+    @FXML
+    private Button orderBtn;
+    @FXML
+    private ToggleGroup orderTypes;
 
 
     public Controller() {
@@ -92,9 +112,9 @@ public class Controller {
 
         restingOrdersList.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> {
             int selectedIdx = restingOrdersList.getSelectionModel().getSelectedIndex();
-            if(selectedIdx == -1){
+            if (selectedIdx == -1) {
                 selectedRestingOrder = null;
-            }else {
+            } else {
                 selectedRestingOrder = restingOrders.get(selectedIdx);
                 cancelOrderId.setText(selectedRestingOrder.getOrderId() + "");
             }
@@ -104,10 +124,13 @@ public class Controller {
     }
 
 
-    void initPlayer(String name, String server) throws IOException{
+    void initPlayer(String name, String server) throws IOException {
         this.player = new Player(name, new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0)), server);
         topOfBookMap = player.getTopOfBookMap();
-        topOfBookMap.addListener((MapChangeListener<String, TopOfBookEntry>) change -> updateTopOfBook());
+        topOfBookMap.addListener((MapChangeListener<String, TopOfBookEntry>) change -> {
+            updateTopOfBook();
+            updatePortfolio();
+        });
 
         portfolioMap = player.getPortfolioMap();
         portfolioMap.addListener((MapChangeListener<String, PortfolioEntry>) change -> {
@@ -133,6 +156,7 @@ public class Controller {
         }));
 
     }
+
     void updateInfo() {
         Platform.runLater(() -> {
             this.serverAddress.setText(player.getServerSocketAddress().toString().replace("/", ""));
@@ -170,9 +194,9 @@ public class Controller {
             int quantity = Integer.parseInt(orderQty.getText());
             if (orderType == OrderType.BUY && (player.getCash() - (price * quantity) < 0)) {
                 showAlert("Insufficient Funds", "You do not have enough funds to place this order");
-            } else if (selectedSymbol == null ) {
+            } else if (selectedSymbol == null) {
                 showAlert("No symbol selected", "Please Select a Symbol");
-            } else{
+            } else {
                 player.submitOrder(player.getPlayerId(), orderType, (short) quantity, price, selectedSymbol);
             }
         } catch (NumberFormatException err) {
@@ -221,11 +245,11 @@ public class Controller {
 
                 List<TopOfBookResponseMessage.PriceQuantityPair> asksNew = new ArrayList<>(topOfBookEntry.getAsks());
                 Collections.reverse(asksNew);
-                for(TopOfBookResponseMessage.PriceQuantityPair pair : asksNew) {
+                for (TopOfBookResponseMessage.PriceQuantityPair pair : asksNew) {
                     orderBookListItems.add(String.format("%25s%-25s", "", "$" + pair.getPrice() + " x " + pair.getQty() + "  ASK"));
                 }
 
-                for(TopOfBookResponseMessage.PriceQuantityPair pair: topOfBookEntry.getBids()) {
+                for (TopOfBookResponseMessage.PriceQuantityPair pair : topOfBookEntry.getBids()) {
                     orderBookListItems.add(String.format("%23s", "BID  " + pair.getQty() + " x $" + pair.getPrice()));
                 }
 
@@ -256,7 +280,7 @@ public class Controller {
                 ObservableList<String> items = restingOrdersList.getItems();
                 items.clear();
                 restingOrders = new ArrayList<>(restingOrdersMap.values());
-                for(ForwardOrderConfirmationMessage msg : restingOrders) {
+                for (ForwardOrderConfirmationMessage msg : restingOrders) {
                     items.add(msg.getOrderType() + " OrderId: " + msg.getOrderId() + " RestingQty: " + msg.getRestingQty() + " RestingPrice: $" + msg.getPrice());
                 }
             } catch (NullPointerException e) {

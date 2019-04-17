@@ -17,6 +17,8 @@ import utils.Utils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import static java.lang.Math.max;
+
 public class Player {
 
     private static Logger log = LogManager.getFormatterLogger(Player.class.getName());
@@ -96,11 +98,11 @@ public class Player {
 
     }
 
-    public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) throws Exception{
+    public void submitOrder(short playerId, OrderType orderType, short quantity, int price, String symbol) throws Exception {
         log.info("Player %d submitted a %s order for %d shares of %s at %d per share", playerId, orderType.name(), quantity, symbol, price);
 
 //        if (orderType == OrderType.BUY) {
-            sendOrder(playerId, orderType, quantity, price, symbol);
+        sendOrder(playerId, orderType, quantity, price, symbol);
 //        }
 //        else if (orderType == OrderType.SELL && portfolio.containsKey(symbol)) {
 //            if (portfolio.get(symbol).getPositions() < quantity) {
@@ -163,29 +165,20 @@ public class Player {
                 PortfolioEntry entry = portfolio.get(msg.getSymbol());
                 entry.updatePositions(msg.getExecutedQty());
                 entry.updateEquity(topOfBookMap.get(msg.getSymbol()).getAsks().get(0).getPrice());
-                portfolio.remove(msg.getSymbol());
                 portfolio.put(msg.getSymbol(), entry);
             }
             cash -= portfolio.get(msg.getSymbol()).getEquity();
         } else if (msg.getExecutedQty() > 0 && msg.getOrderType() == OrderType.SELL) {
-            try {
-                PortfolioEntry entry = portfolio.get(msg.getSymbol());
-                if (entry.getPositions() == msg.getExecutedQty()) {
-                    portfolio.remove(msg.getSymbol());
-                } else {
-                    entry.updatePositions(-msg.getExecutedQty());
-                    portfolio.remove(msg.getSymbol());
-                    portfolio.put(msg.getSymbol(), entry);
-                }
-            } catch (NullPointerException e) {
-                log.error("You do not own the selected stock");
-            }
+            PortfolioEntry entry = portfolio.getOrDefault(msg.getSymbol(), new PortfolioEntry(msg.getSymbol(), (short) 0, 0));
+            entry.updatePositions(-msg.getExecutedQty());
+            entry.setEquity(entry.getPositions() * msg.getExecutedQty());
+            portfolio.put(msg.getSymbol(), entry);
             cash += msg.getExecutedQty() * msg.getPrice();
         }
 
         if (msg.getRestingQty() == 0) {
             restingOrdersMap.remove(msg.getOrderId());
-        }else{
+        } else {
             restingOrdersMap.put(msg.getOrderId(), msg);
         }
     }
@@ -202,6 +195,11 @@ public class Player {
         if (!symbolList.contains(msg.getSymbol())) {
             symbolList.add(msg.getSymbol());
         }
+
+        if (!portfolio.containsKey(symbol)) {
+            portfolio.put(symbol, new PortfolioEntry(symbol, (short) 0, 0));
+        }
+        portfolio.get(symbol).setEquity(max(portfolio.get(symbol).getPositions() * msg.getBids().get(0).price, 0));
     }
 
     private void updateRestingOrders(Envelope<ForwardCancelConfirmationMessage> envelope) {
