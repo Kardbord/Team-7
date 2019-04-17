@@ -239,6 +239,6 @@ public class MatchingEngine {
             }
         }
         TcpCommunicator tcpCommunicator=new TcpCommunicator(socket);
-        MatchingEngine matchingEngine=new MatchingEngine("GOOG", tcpCommunicator);
+        MatchingEngine matchingEngine=new MatchingEngine(args.length > 0 ? args[0] : "GOOG", tcpCommunicator);
     }
 }
