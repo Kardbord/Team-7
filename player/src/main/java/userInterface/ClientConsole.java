@@ -2,6 +2,8 @@ package userInterface;
 
 import communicators.UdpCommunicator;
 import player.Player;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -67,7 +69,9 @@ public class ClientConsole {
                     getUserInput("Name: "),
                     new UdpCommunicator(
                             DatagramChannel.open(),
-                            new InetSocketAddress(0)
+                            new InetSocketAddress(0),
+                            new Decrypter(),
+                            new Encrypter()
                     )
             );
         } else {
@@ -75,7 +79,9 @@ public class ClientConsole {
                     getUserInput("Name: "),
                     new UdpCommunicator(
                             DatagramChannel.open(),
-                            new InetSocketAddress(0)
+                            new InetSocketAddress(0),
+                            new Decrypter(),
+                            new Encrypter()
                     ),
                     args[0]
             );

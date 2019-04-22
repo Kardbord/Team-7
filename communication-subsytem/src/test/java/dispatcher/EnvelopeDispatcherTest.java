@@ -4,6 +4,8 @@ import communicators.Envelope;
 import messages.AckMessage;
 import org.junit.Before;
 import org.junit.Test;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,7 +21,7 @@ public class EnvelopeDispatcherTest {
 
     @Before
     public void setup() {
-        victim = new EnvelopeDispatcher() {};
+        victim = new EnvelopeDispatcher(new Decrypter(), new Encrypter()) {};
     }
 
     @Test

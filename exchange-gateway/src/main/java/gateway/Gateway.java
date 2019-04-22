@@ -6,6 +6,8 @@ import communicators.UdpCommunicator;
 import messages.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -221,7 +223,7 @@ public class Gateway {
             while (true) {
                 TcpCommunicator tcpCommunicator;
                 try {
-                    tcpCommunicator = new TcpCommunicator(serverSocket.accept());
+                    tcpCommunicator = new TcpCommunicator(serverSocket.accept(), new Decrypter(), new Encrypter());
                 } catch (IOException e) {
                     LOG.error("Failure in Gateway RegisterMatchingEngineMessage listener while awaiting connection -> %s", e.getMessage());
                     continue;

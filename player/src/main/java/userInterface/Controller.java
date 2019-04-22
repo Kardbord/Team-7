@@ -25,6 +25,8 @@ import java.util.List;
 
 import messages.SubmitOrderMessage.OrderType;
 import messages.ScoreboardMessage.ScoreboardEntry;
+import security.Decrypter;
+import security.Encrypter;
 
 public class Controller {
 
@@ -125,7 +127,7 @@ public class Controller {
 
 
     void initPlayer(String name, String server) throws IOException {
-        this.player = new Player(name, new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0)), server);
+        this.player = new Player(name, new UdpCommunicator(DatagramChannel.open(), new InetSocketAddress(0), new Decrypter(), new Encrypter()), server);
         topOfBookMap = player.getTopOfBookMap();
         topOfBookMap.addListener((MapChangeListener<String, TopOfBookEntry>) change -> {
             updateTopOfBook();

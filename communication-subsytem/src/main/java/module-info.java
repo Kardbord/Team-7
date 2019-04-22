@@ -5,5 +5,6 @@ module communication.subsytem {
     exports communicators;
     exports dispatcher;
     exports conversation;
+    exports security;
 
 }

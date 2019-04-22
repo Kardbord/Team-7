@@ -7,6 +7,8 @@ import messages.*;
 import messages.SubmitOrderMessage.OrderType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -238,7 +240,7 @@ public class MatchingEngine {
                 }
             }
         }
-        TcpCommunicator tcpCommunicator=new TcpCommunicator(socket);
+        TcpCommunicator tcpCommunicator=new TcpCommunicator(socket, new Decrypter(), new Encrypter());
         MatchingEngine matchingEngine=new MatchingEngine(args.length > 0 ? args[0] : "GOOG", tcpCommunicator);
     }
 }

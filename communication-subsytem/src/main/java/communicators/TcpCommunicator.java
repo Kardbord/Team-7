@@ -2,6 +2,8 @@ package communicators;
 
 import dispatcher.EnvelopeDispatcher;
 import messages.Message;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,22 +19,22 @@ public class TcpCommunicator extends EnvelopeDispatcher implements Runnable {
 
     private Socket socket;
 
-    public TcpCommunicator(Socket socket) {
+    public TcpCommunicator(Socket socket, Decrypter decrypter, Encrypter encrypter) {
+        super(decrypter, encrypter);
         if(socket == null || !socket.isConnected()) {
             throw new IllegalArgumentException();
         }
-
         this.socket = socket;
     }
 
     public void send(byte[] messageBytes) throws IOException {
         OutputStream outputStream = socket.getOutputStream();
-        outputStream.write(messageBytes);
+        outputStream.write(encrypter.encrypt(messageBytes));
     }
 
     public void send(Message messageToSend) throws IOException {
         OutputStream outputStream = socket.getOutputStream();
-        outputStream.write(messageToSend.encode());
+        outputStream.write(encrypter.encrypt(messageToSend.encode()));
     }
 
     public <T extends Message> void sendReliably(Message messageToSend, Class<T> expectedResponse) throws IOException {
@@ -81,7 +83,7 @@ public class TcpCommunicator extends EnvelopeDispatcher implements Runnable {
         byte[] messageBytes = Arrays.copyOf(buffer, numBytesReadIntoBuffer);
         InetSocketAddress sourceSocketAddress = (InetSocketAddress) socket.getRemoteSocketAddress();
 
-        return new Envelope<>(messageBytes, sourceSocketAddress);
+        return new Envelope<>(decrypter.decrypt(messageBytes), sourceSocketAddress);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package gateway;
 
 import communicators.UdpCommunicator;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,7 +15,9 @@ public class App {
         new Gateway(
                 new UdpCommunicator(
                         DatagramChannel.open(),
-                        new InetSocketAddress("0.0.0.0", Gateway.PORT)
+                        new InetSocketAddress("0.0.0.0", Gateway.PORT),
+                        new Decrypter(),
+                        new Encrypter()
                 )
         );
         System.out.println("Gateway is listening.");

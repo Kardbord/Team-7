@@ -4,6 +4,8 @@ import messages.AckMessage;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -24,17 +26,18 @@ public class UdpCommunicatorTest {
 
     @Before
     public void setup() throws IOException{
-        victim = new UdpCommunicator(datagramChannel, new InetSocketAddress(0));
+        victim = new UdpCommunicator(datagramChannel, new InetSocketAddress(0), new Decrypter(), new Encrypter());
     }
 
     @Test
-    public void sendShouldDelegateToDatagramChannel() throws IOException {
-        byte[] expectedMessageBytes = new byte[]{'t','e','s','t'};
+    public void sendShouldDelegateToDatagramChannelWithEncryptedBytes() throws IOException {
+        byte[] messageBytesToTest = new byte[]{'t', 'e', 's', 't'};
+        byte[] expectedMessageBytes = new Encrypter().encrypt(messageBytesToTest);
         InetAddress inetAddress = mock(InetAddress.class);
         int port = 1;
         InetSocketAddress expectedSocketAddress = new InetSocketAddress(inetAddress, port);
 
-        victim.send(expectedMessageBytes, inetAddress, port);
+        victim.send(messageBytesToTest, inetAddress, port);
 
         verify(datagramChannel).send(ByteBuffer.wrap(expectedMessageBytes), expectedSocketAddress);
     }

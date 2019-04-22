@@ -2,6 +2,8 @@ package communicators;
 
 import dispatcher.EnvelopeDispatcher;
 import messages.Message;
+import security.Decrypter;
+import security.Encrypter;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -16,7 +18,9 @@ public class UdpCommunicator extends EnvelopeDispatcher implements Runnable {
 
     private DatagramChannel datagramChannel;
 
-    public UdpCommunicator(DatagramChannel datagramChannel, InetSocketAddress address) throws IOException{
+    public UdpCommunicator(DatagramChannel datagramChannel, InetSocketAddress address,
+                           Decrypter decrypter, Encrypter encrypter) throws IOException{
+        super(decrypter, encrypter);
         this.datagramChannel = datagramChannel;
         if (address.getPort() != 0)
             this.datagramChannel.bind(address);
@@ -25,11 +29,11 @@ public class UdpCommunicator extends EnvelopeDispatcher implements Runnable {
     }
 
     public void send(byte[] messageBytes, InetAddress address, int port) throws IOException {
-        datagramChannel.send(ByteBuffer.wrap(messageBytes), new InetSocketAddress(address, port));
+        datagramChannel.send(ByteBuffer.wrap(encrypter.encrypt(messageBytes)), new InetSocketAddress(address, port));
     }
 
     public void send(Message messageToSend, InetAddress address, int port) throws IOException {
-        datagramChannel.send(ByteBuffer.wrap(messageToSend.encode()), new InetSocketAddress(address, port));
+        datagramChannel.send(ByteBuffer.wrap(encrypter.encrypt(messageToSend.encode())), new InetSocketAddress(address, port));
     }
 
     public <T extends Message> void sendReliably(Message messageToSend, InetAddress address,
@@ -78,7 +82,7 @@ public class UdpCommunicator extends EnvelopeDispatcher implements Runnable {
 
         byte[] messageBytes = Arrays.copyOf(buffer.array(), buffer.position());
 
-        return new Envelope<>(messageBytes, sourceSocketAddress);
+        return new Envelope<>(decrypter.decrypt(messageBytes), sourceSocketAddress);
     }
 
     @Override
